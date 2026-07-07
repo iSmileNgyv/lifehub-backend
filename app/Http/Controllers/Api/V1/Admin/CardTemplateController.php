@@ -72,6 +72,7 @@ class CardTemplateController extends Controller
             'fields.*.type' => ['required', Rule::in(['text', 'textarea', 'rich', 'image'])],
             'fields.*.side' => ['required', Rule::in(['front', 'back'])],
             'fields.*.section' => ['nullable', 'string', 'max:120'],
+            'fields.*.list' => ['nullable', 'boolean'],   // kart siyahısında göstərilsin?
             // Kətan yerləşməsi (grid): x/y mövqe, w/h ölçü
             'fields.*.x' => ['nullable', 'integer', 'min:0', 'max:24'],
             'fields.*.y' => ['nullable', 'integer', 'min:0', 'max:400'],

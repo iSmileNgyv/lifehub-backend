@@ -1,0 +1,81 @@
+# LifeHub — production deploy
+# İşə salmaq (server, docker-compose v1):
+#   DOCKER_BUILDKIT=0 docker-compose -p lifehub -f compose.prod.yaml up -d --build
+#
+# Şərtlər:
+#  - Bu qovluqda .env olmalıdır (bax .env.production)
+#  - Frontend repo yan qovluqda: ../lifehub-web  (və ya FRONTEND_PATH ilə göstər)
+#  - .env-də CADDY_NETWORK = serverdəki Caddy-nin Docker şəbəkəsi (orderhub1_default)
+
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lifehub-api:latest
+    container_name: lifehub_api
+    restart: unless-stopped
+    volumes:
+      - ./.env:/var/www/html/.env:ro
+      - lifehub_storage:/var/www/html/storage/app/public
+    depends_on:
+      - pgsql
+      - redis
+    networks:
+      - internal
+      - caddy
+
+  web:
+    build:
+      context: ${FRONTEND_PATH:-../lifehub-web}
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://lifehub.iso.com.az/api/v1}
+    image: lifehub-web:latest
+    container_name: lifehub_web
+    restart: unless-stopped
+    networks:
+      - caddy
+
+  pgsql:
+    image: postgres:18-alpine
+    container_name: lifehub_pgsql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-lifehub}
+      POSTGRES_USER: ${DB_USERNAME:-lifehub}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - '5435:5432'          # host 5435 (5432/5434 serverdə məşğul)
+    volumes:
+      - lifehub_pgsql:/var/lib/postgresql
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', '${DB_USERNAME:-lifehub}', '-d', '${DB_DATABASE:-lifehub}']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  redis:
+    image: redis:7-alpine
+    container_name: lifehub_redis
+    restart: unless-stopped
+    volumes:
+      - lifehub_redis:/data
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK}
+
+volumes:
+  lifehub_pgsql:
+  lifehub_redis:
+  lifehub_storage:

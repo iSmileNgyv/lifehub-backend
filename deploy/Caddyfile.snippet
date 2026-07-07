@@ -1,0 +1,15 @@
+# === Bu bloku serverdəki Caddyfile-a əlavə et (mövcud shisha blokunun yanına) ===
+# lifehub_api və lifehub_web konteynerləri Caddy ilə eyni şəbəkədə olmalıdır (orderhub1_default).
+
+lifehub.iso.com.az {
+    encode zstd gzip
+
+    @backend path /api/* /storage/*
+    handle @backend {
+        reverse_proxy lifehub_api:80
+    }
+
+    handle {
+        reverse_proxy lifehub_web:3000
+    }
+}

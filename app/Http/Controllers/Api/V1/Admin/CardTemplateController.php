@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\CardTemplate;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
+class CardTemplateController extends Controller
+{
+    /** GET /api/v1/study/templates */
+    public function index(Request $request): JsonResponse
+    {
+        $templates = CardTemplate::where('owner_uid', $request->user()->uid)->orderBy('name')->get();
+
+        return response()->json(['data' => $templates->map(fn (CardTemplate $t) => $this->payload($t))->all()]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $data = $this->validateData($request);
+
+        $template = CardTemplate::create([
+            'owner_uid' => $request->user()->uid,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'fields' => $data['fields'] ?? [],
+        ]);
+
+        return response()->json($this->payload($template), 201);
+    }
+
+    public function update(Request $request, CardTemplate $template): JsonResponse
+    {
+        $this->owner($request, $template);
+        $data = $this->validateData($request);
+
+        $template->update([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'fields' => $data['fields'] ?? [],
+        ]);
+
+        return response()->json($this->payload($template));
+    }
+
+    public function destroy(Request $request, CardTemplate $template): JsonResponse
+    {
+        $this->owner($request, $template);
+        $template->delete();
+
+        return response()->json(['message' => __('messages.deleted')]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateData(Request $request): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'fields' => ['sometimes', 'array'],
+            'fields.*.key' => ['required', 'string', 'max:60'],
+            'fields.*.label' => ['required', 'string', 'max:120'],
+            'fields.*.description' => ['nullable', 'string', 'max:500'],
+            'fields.*.type' => ['required', Rule::in(['text', 'textarea', 'image'])],
+            'fields.*.side' => ['required', Rule::in(['front', 'back'])],
+            'fields.*.section' => ['nullable', 'string', 'max:120'],
+        ]);
+    }
+
+    private function owner(Request $request, CardTemplate $template): void
+    {
+        abort_unless($template->owner_uid === $request->user()->uid, 403);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(CardTemplate $t): array
+    {
+        return [
+            'uid' => $t->uid,
+            'name' => $t->name,
+            'description' => $t->description,
+            'fields' => $t->fields ?? [],
+        ];
+    }
+}

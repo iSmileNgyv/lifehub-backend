@@ -1,0 +1,55 @@
+<?php
+
+return [
+    'accepted' => ':attribute qəbul edilməlidir.',
+    'active_url' => ':attribute düzgün URL deyil.',
+    'after' => ':attribute :date tarixindən sonra olmalıdır.',
+    'alpha' => ':attribute yalnız hərflərdən ibarət olmalıdır.',
+    'alpha_dash' => ':attribute yalnız hərf, rəqəm, tire və alt-xətdən ibarət olmalıdır.',
+    'alpha_num' => ':attribute yalnız hərf və rəqəmlərdən ibarət olmalıdır.',
+    'array' => ':attribute massiv olmalıdır.',
+    'before' => ':attribute :date tarixindən əvvəl olmalıdır.',
+    'between' => [
+        'numeric' => ':attribute :min ilə :max arasında olmalıdır.',
+        'string' => ':attribute :min ilə :max simvol arasında olmalıdır.',
+        'array' => ':attribute :min ilə :max element arasında olmalıdır.',
+    ],
+    'boolean' => ':attribute sahəsi true və ya false olmalıdır.',
+    'confirmed' => ':attribute təsdiqi uyğun gəlmir.',
+    'date' => ':attribute düzgün tarix deyil.',
+    'email' => ':attribute düzgün e-poçt ünvanı olmalıdır.',
+    'enum' => 'Seçilmiş :attribute yanlışdır.',
+    'exists' => 'Seçilmiş :attribute yanlışdır.',
+    'in' => 'Seçilmiş :attribute yanlışdır.',
+    'integer' => ':attribute tam ədəd olmalıdır.',
+    'max' => [
+        'numeric' => ':attribute :max-dan böyük olmamalıdır.',
+        'string' => ':attribute :max simvoldan çox olmamalıdır.',
+        'array' => ':attribute :max elementdən çox olmamalıdır.',
+    ],
+    'min' => [
+        'numeric' => ':attribute ən azı :min olmalıdır.',
+        'string' => ':attribute ən azı :min simvol olmalıdır.',
+        'array' => ':attribute ən azı :min element olmalıdır.',
+    ],
+    'numeric' => ':attribute ədəd olmalıdır.',
+    'present' => ':attribute sahəsi mövcud olmalıdır.',
+    'required' => ':attribute sahəsi mütləqdir.',
+    'string' => ':attribute mətn olmalıdır.',
+    'unique' => ':attribute artıq mövcuddur.',
+
+    'custom' => [],
+
+    'attributes' => [
+        'name' => 'ad',
+        'username' => 'istifadəçi adı',
+        'password' => 'şifrə',
+        'current_password' => 'cari şifrə',
+        'new_password' => 'yeni şifrə',
+        'status' => 'status',
+        'language' => 'dil',
+        'code' => 'kod',
+        'roles' => 'rollar',
+        'access' => 'icazə',
+    ],
+];

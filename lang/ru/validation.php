@@ -1,0 +1,55 @@
+<?php
+
+return [
+    'accepted' => 'Поле :attribute должно быть принято.',
+    'active_url' => 'Поле :attribute не является корректным URL.',
+    'after' => 'Поле :attribute должно быть датой после :date.',
+    'alpha' => 'Поле :attribute может содержать только буквы.',
+    'alpha_dash' => 'Поле :attribute может содержать только буквы, цифры, дефис и подчёркивание.',
+    'alpha_num' => 'Поле :attribute может содержать только буквы и цифры.',
+    'array' => 'Поле :attribute должно быть массивом.',
+    'before' => 'Поле :attribute должно быть датой до :date.',
+    'between' => [
+        'numeric' => 'Поле :attribute должно быть между :min и :max.',
+        'string' => 'Поле :attribute должно быть от :min до :max символов.',
+        'array' => 'Поле :attribute должно содержать от :min до :max элементов.',
+    ],
+    'boolean' => 'Поле :attribute должно быть true или false.',
+    'confirmed' => 'Поле :attribute не совпадает с подтверждением.',
+    'date' => 'Поле :attribute не является корректной датой.',
+    'email' => 'Поле :attribute должно быть корректным email-адресом.',
+    'enum' => 'Выбранное значение :attribute некорректно.',
+    'exists' => 'Выбранное значение :attribute некорректно.',
+    'in' => 'Выбранное значение :attribute некорректно.',
+    'integer' => 'Поле :attribute должно быть целым числом.',
+    'max' => [
+        'numeric' => 'Поле :attribute не может быть больше :max.',
+        'string' => 'Поле :attribute не может быть длиннее :max символов.',
+        'array' => 'Поле :attribute не может содержать более :max элементов.',
+    ],
+    'min' => [
+        'numeric' => 'Поле :attribute должно быть не меньше :min.',
+        'string' => 'Поле :attribute должно быть не короче :min символов.',
+        'array' => 'Поле :attribute должно содержать не менее :min элементов.',
+    ],
+    'numeric' => 'Поле :attribute должно быть числом.',
+    'present' => 'Поле :attribute должно присутствовать.',
+    'required' => 'Поле :attribute обязательно для заполнения.',
+    'string' => 'Поле :attribute должно быть строкой.',
+    'unique' => 'Такое значение :attribute уже существует.',
+
+    'custom' => [],
+
+    'attributes' => [
+        'name' => 'имя',
+        'username' => 'имя пользователя',
+        'password' => 'пароль',
+        'current_password' => 'текущий пароль',
+        'new_password' => 'новый пароль',
+        'status' => 'статус',
+        'language' => 'язык',
+        'code' => 'код',
+        'roles' => 'роли',
+        'access' => 'доступ',
+    ],
+];

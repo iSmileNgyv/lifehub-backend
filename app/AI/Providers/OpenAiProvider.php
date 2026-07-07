@@ -28,13 +28,15 @@ class OpenAiProvider implements AiProvider
 
         $lines = [];
         foreach ($fields as $f) {
-            $lines[] = '- '.$f['key'].': '.($f['description'] ?: $f['key']);
+            $label = ! empty($f['label']) ? ' ['.$f['label'].']' : '';
+            $lines[] = '- '.$f['key'].$label.': '.($f['description'] ?: $f['key']);
         }
 
-        $system = 'You are a language-learning assistant that fills flashcard fields. '
+        $system = 'You fill flashcard fields. '
             .'Return ONLY a JSON object whose keys are EXACTLY the requested field keys and whose values are strings. '
-            .'Follow each field description precisely. If a value is unknown, use an empty string. Do not add extra keys. '
-            .'Values may contain simple inline HTML (<b>, <i>, <u>, <span style="color:..."></span>) when the instruction asks for formatting.';
+            .'Fill each field strictly according to its label, its description and the general instruction — these are the only sources of what the content should be. Do not apply any rules of your own beyond them. '
+            .'If a value is unknown, use an empty string. Do not add keys that were not requested. '
+            .'Values may contain simple inline HTML (<b>, <i>, <u>, <span style="color:..."></span>) when a description or the general instruction asks for such formatting.';
 
         $instructionBlock = trim($instruction) !== '' ? "General instruction:\n".$instruction."\n\n" : '';
         $user = $instructionBlock."Word / prompt:\n".$prompt."\n\nFill these fields (key: description):\n".implode("\n", $lines);

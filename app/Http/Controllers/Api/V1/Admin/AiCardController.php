@@ -65,7 +65,7 @@ class AiCardController extends Controller
     {
         return collect($template->fields ?? [])
             ->filter(fn ($f) => in_array($f['type'] ?? 'text', ['text', 'textarea', 'rich'], true))
-            ->map(fn ($f) => ['key' => $f['key'], 'description' => $f['description'] ?? null])
+            ->map(fn ($f) => ['key' => $f['key'], 'label' => $f['label'] ?? '', 'description' => $f['description'] ?? null])
             ->values()
             ->all();
     }

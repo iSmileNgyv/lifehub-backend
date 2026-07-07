@@ -7,7 +7,7 @@ interface AiProvider
     /**
      * Verilən söz/prompt üçün sahələri doldur.
      *
-     * @param  array<int, array{key: string, description: ?string}>  $fields
+     * @param  array<int, array{key: string, label?: string, description: ?string}>  $fields
      * @param  string  $instruction  Şablonun ümumi AI təlimatı (formatlaşdırma və s.)
      * @return array<string, string>  key => dəyər
      */

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\CardController;
 use App\Http\Controllers\Api\V1\Admin\CardTemplateController;
+use App\Http\Controllers\Api\V1\Admin\AiCardController;
 use App\Http\Controllers\Api\V1\Admin\CashDeskController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\DeckController;
@@ -127,6 +128,9 @@ Route::prefix('v1')->group(function () {
         Route::post('study/templates', [CardTemplateController::class, 'store'])->middleware('access:STUDY_CREATE');
         Route::patch('study/templates/{template}', [CardTemplateController::class, 'update'])->middleware('access:STUDY_UPDATE');
         Route::delete('study/templates/{template}', [CardTemplateController::class, 'destroy'])->middleware('access:STUDY_DELETE');
+        // AI ilə kart doldurma (factory: hazırda OpenAI)
+        Route::post('study/templates/{template}/generate', [AiCardController::class, 'generate'])->middleware('access:STUDY_CREATE');
+        Route::post('study/templates/{template}/generate-bulk', [AiCardController::class, 'generateBulk'])->middleware('access:STUDY_CREATE');
 
         Route::get('study/decks', [DeckController::class, 'index'])->middleware('access:STUDY_VIEW');
         Route::post('study/decks', [DeckController::class, 'store'])->middleware('access:STUDY_CREATE');

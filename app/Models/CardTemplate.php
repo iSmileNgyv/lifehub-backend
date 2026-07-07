@@ -17,7 +17,7 @@ class CardTemplate extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['uid', 'owner_uid', 'name', 'description', 'fields'];
+    protected $fillable = ['uid', 'owner_uid', 'name', 'description', 'ai_instruction', 'fields'];
 
     public function uniqueIds(): array
     {

@@ -26,6 +26,7 @@ class CardTemplateController extends Controller
             'owner_uid' => $request->user()->uid,
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
+            'ai_instruction' => $data['ai_instruction'] ?? null,
             'fields' => $data['fields'] ?? [],
         ]);
 
@@ -40,6 +41,7 @@ class CardTemplateController extends Controller
         $template->update([
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
+            'ai_instruction' => $data['ai_instruction'] ?? null,
             'fields' => $data['fields'] ?? [],
         ]);
 
@@ -62,13 +64,19 @@ class CardTemplateController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:255'],
+            'ai_instruction' => ['nullable', 'string', 'max:3000'],
             'fields' => ['sometimes', 'array'],
             'fields.*.key' => ['required', 'string', 'max:60'],
             'fields.*.label' => ['required', 'string', 'max:120'],
             'fields.*.description' => ['nullable', 'string', 'max:500'],
-            'fields.*.type' => ['required', Rule::in(['text', 'textarea', 'image'])],
+            'fields.*.type' => ['required', Rule::in(['text', 'textarea', 'rich', 'image'])],
             'fields.*.side' => ['required', Rule::in(['front', 'back'])],
             'fields.*.section' => ['nullable', 'string', 'max:120'],
+            // Kətan yerləşməsi (grid): x/y mövqe, w/h ölçü
+            'fields.*.x' => ['nullable', 'integer', 'min:0', 'max:24'],
+            'fields.*.y' => ['nullable', 'integer', 'min:0', 'max:400'],
+            'fields.*.w' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'fields.*.h' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
     }
 
@@ -86,6 +94,7 @@ class CardTemplateController extends Controller
             'uid' => $t->uid,
             'name' => $t->name,
             'description' => $t->description,
+            'ai_instruction' => $t->ai_instruction,
             'fields' => $t->fields ?? [],
         ];
     }

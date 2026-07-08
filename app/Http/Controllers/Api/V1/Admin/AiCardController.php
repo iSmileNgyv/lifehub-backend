@@ -12,6 +12,9 @@ use Throwable;
 
 class AiCardController extends Controller
 {
+    /** Bulk-da bir sorğuya neçə söz (xərc/etibarlılıq balansı). */
+    private const BULK_CHUNK = 15;
+
     /** POST /study/templates/{template}/generate — bir söz üçün sahələri doldur. */
     public function generate(Request $request, CardTemplate $template): JsonResponse
     {
@@ -44,12 +47,20 @@ class AiCardController extends Controller
 
         $textFields = $this->textFields($template);
         $instruction = (string) $template->ai_instruction;
+        $words = array_values(array_unique(array_map('trim', $data['words'])));
+
+        // Xərci azaltmaq üçün bir sorğuda bir neçə söz (chunk).
         $results = [];
-        foreach (array_values(array_unique($data['words'])) as $word) {
+        foreach (array_chunk($words, self::BULK_CHUNK) as $chunk) {
             try {
-                $results[] = ['word' => $word, 'fields' => $provider->generateFields($textFields, $word, $instruction), 'error' => null];
+                $batch = $provider->generateFieldsBatch($textFields, $chunk, $instruction);
+                foreach ($chunk as $word) {
+                    $results[] = ['word' => $word, 'fields' => $batch[$word] ?? [], 'error' => null];
+                }
             } catch (Throwable $e) {
-                $results[] = ['word' => $word, 'fields' => [], 'error' => $e->getMessage()];
+                foreach ($chunk as $word) {
+                    $results[] = ['word' => $word, 'fields' => [], 'error' => $e->getMessage()];
+                }
             }
         }
 

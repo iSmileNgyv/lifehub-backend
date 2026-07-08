@@ -69,7 +69,7 @@ class CardTemplateController extends Controller
             'fields.*.key' => ['required', 'string', 'max:60'],
             'fields.*.label' => ['required', 'string', 'max:120'],
             'fields.*.description' => ['nullable', 'string', 'max:500'],
-            'fields.*.type' => ['required', Rule::in(['text', 'textarea', 'rich', 'image'])],
+            'fields.*.type' => ['required', Rule::in(['text', 'textarea', 'rich', 'image', 'heading'])],
             'fields.*.side' => ['required', Rule::in(['front', 'back'])],
             'fields.*.section' => ['nullable', 'string', 'max:120'],
             'fields.*.list' => ['nullable', 'boolean'],   // kart siyahısında göstərilsin?
@@ -78,6 +78,10 @@ class CardTemplateController extends Controller
             'fields.*.y' => ['nullable', 'integer', 'min:0', 'max:400'],
             'fields.*.w' => ['nullable', 'integer', 'min:1', 'max:24'],
             'fields.*.h' => ['nullable', 'integer', 'min:1', 'max:50'],
+            // Yalnız type='heading' üçün statik başlıq xüsusiyyətləri
+            'fields.*.level' => ['nullable', Rule::in(['h1', 'h2', 'h3', 'h4'])],
+            'fields.*.color' => ['nullable', 'string', 'max:32'],
+            'fields.*.align' => ['nullable', Rule::in(['left', 'center', 'right'])],
         ]);
     }
 

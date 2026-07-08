@@ -17,32 +17,87 @@ class OpenAiProvider implements AiProvider
 
     public function generateFields(array $fields, string $prompt, string $instruction = ''): array
     {
+        $this->assertConfigured();
+        if (empty($fields)) {
+            return [];
+        }
+
+        $system = 'You fill flashcard fields. Return ONLY a JSON object; keys must be EXACTLY the requested field keys; values are strings. '
+            .'Fill each field strictly per its label, description and the general instruction — apply no rules of your own. '
+            .'Unknown → empty string. No extra keys. Use inline HTML only if a description/instruction asks.';
+
+        $user = $this->instructionBlock($instruction)
+            ."Word / prompt:\n".$prompt
+            ."\n\nFill these fields (key: description):\n".$this->fieldLines($fields);
+
+        $data = $this->call($system, $user);
+
+        return $this->pick($data, $fields);
+    }
+
+    public function generateFieldsBatch(array $fields, array $prompts, string $instruction = ''): array
+    {
+        $this->assertConfigured();
+        $prompts = array_values(array_unique(array_filter(array_map('trim', $prompts), fn ($w) => $w !== '')));
+        if (empty($fields) || empty($prompts)) {
+            return [];
+        }
+
+        $system = 'You fill flashcard fields for several words at once. '
+            .'Return ONLY a JSON object whose keys are EXACTLY the given words; each value is an object whose keys are EXACTLY the requested field keys (string values). '
+            .'Fill each field strictly per its label, description and the general instruction — apply no rules of your own. '
+            .'Unknown → empty string. No extra keys. Use inline HTML only if a description/instruction asks.';
+
+        $wordList = implode("\n", array_map(fn ($w) => '- '.$w, $prompts));
+        $user = $this->instructionBlock($instruction)
+            ."Words (fill each one):\n".$wordList
+            ."\n\nFor every word fill these fields (key: description):\n".$this->fieldLines($fields);
+
+        $data = $this->call($system, $user);
+
+        $out = [];
+        foreach ($prompts as $w) {
+            $row = is_array($data[$w] ?? null) ? $data[$w] : [];
+            $out[$w] = $this->pick($row, $fields);
+        }
+
+        return $out;
+    }
+
+    private function assertConfigured(): void
+    {
         if (empty($this->key)) {
             throw new RuntimeException('AI konfiqurasiya olunmayıb: OPENAI_API_KEY .env-də yoxdur.');
         }
         if (empty($this->model)) {
             throw new RuntimeException('AI konfiqurasiya olunmayıb: OPENAI_MODEL .env-də yoxdur.');
         }
-        if (empty($fields)) {
-            return [];
-        }
+    }
 
+    /** @param array<int, array{key: string, label?: string, description: ?string}> $fields */
+    private function fieldLines(array $fields): string
+    {
         $lines = [];
         foreach ($fields as $f) {
             $label = ! empty($f['label']) ? ' ['.$f['label'].']' : '';
             $lines[] = '- '.$f['key'].$label.': '.($f['description'] ?: $f['key']);
         }
 
-        $system = 'You fill flashcard fields. '
-            .'Return ONLY a JSON object whose keys are EXACTLY the requested field keys and whose values are strings. '
-            .'Fill each field strictly according to its label, its description and the general instruction — these are the only sources of what the content should be. Do not apply any rules of your own beyond them. '
-            .'If a value is unknown, use an empty string. Do not add keys that were not requested. '
-            .'Values may contain simple inline HTML (<b>, <i>, <u>, <span style="color:..."></span>) when a description or the general instruction asks for such formatting.';
+        return implode("\n", $lines);
+    }
 
-        $instructionBlock = trim($instruction) !== '' ? "General instruction:\n".$instruction."\n\n" : '';
-        $user = $instructionBlock."Word / prompt:\n".$prompt."\n\nFill these fields (key: description):\n".implode("\n", $lines);
+    private function instructionBlock(string $instruction): string
+    {
+        return trim($instruction) !== '' ? "General instruction:\n".$instruction."\n\n" : '';
+    }
 
-        // Responses API — həm klassik (gpt-4o/mini), həm yeni/reasoning (gpt-5.x, pro) modellərlə işləyir.
+    /**
+     * Responses API çağırışı — həm klassik, həm reasoning modellərlə işləyir.
+     *
+     * @return array<string, mixed>
+     */
+    private function call(string $system, string $user): array
+    {
         $payload = [
             'model' => $this->model,
             'input' => [
@@ -51,7 +106,6 @@ class OpenAiProvider implements AiProvider
             ],
             'text' => ['format' => ['type' => 'json_object']],
         ];
-        // Yalnız reasoning modelləri üçün — sürəti artırmaq üçün effort (məs. low).
         if (! empty($this->reasoningEffort)) {
             $payload['reasoning'] = ['effort' => $this->reasoningEffort];
         }
@@ -84,7 +138,18 @@ class OpenAiProvider implements AiProvider
             throw new RuntimeException('AI cavabı oxunmadı.');
         }
 
-        // Yalnız tələb olunan açarları saxla
+        return $data;
+    }
+
+    /**
+     * Yalnız tələb olunan açarları saxla.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<int, array{key: string}>  $fields
+     * @return array<string, string>
+     */
+    private function pick(array $data, array $fields): array
+    {
         $out = [];
         foreach ($fields as $f) {
             $v = $data[$f['key']] ?? null;

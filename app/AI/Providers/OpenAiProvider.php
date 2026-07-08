@@ -50,7 +50,6 @@ class OpenAiProvider implements AiProvider
                     ['role' => 'user', 'content' => $user],
                 ],
                 'response_format' => ['type' => 'json_object'],
-                'temperature' => 0.3,
             ]);
 
         if (! $res->successful()) {

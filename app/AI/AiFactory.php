@@ -20,6 +20,7 @@ class AiFactory
                 config('ai.openai.key'),
                 config('ai.openai.model'),
                 rtrim((string) config('ai.openai.base_url'), '/'),
+                config('ai.openai.reasoning_effort'),
             ),
             // 'deepseek' => new Providers\DeepSeekProvider(...),   // sonra
             // 'claude' => new Providers\ClaudeProvider(...),       // sonra

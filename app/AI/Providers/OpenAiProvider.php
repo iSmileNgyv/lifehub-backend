@@ -12,6 +12,7 @@ class OpenAiProvider implements AiProvider
         private ?string $key,
         private ?string $model,
         private string $baseUrl,
+        private ?string $reasoningEffort = null,
     ) {}
 
     public function generateFields(array $fields, string $prompt, string $instruction = ''): array
@@ -42,16 +43,22 @@ class OpenAiProvider implements AiProvider
         $user = $instructionBlock."Word / prompt:\n".$prompt."\n\nFill these fields (key: description):\n".implode("\n", $lines);
 
         // Responses API — həm klassik (gpt-4o/mini), həm yeni/reasoning (gpt-5.x, pro) modellərlə işləyir.
+        $payload = [
+            'model' => $this->model,
+            'input' => [
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user', 'content' => $user],
+            ],
+            'text' => ['format' => ['type' => 'json_object']],
+        ];
+        // Yalnız reasoning modelləri üçün — sürəti artırmaq üçün effort (məs. low).
+        if (! empty($this->reasoningEffort)) {
+            $payload['reasoning'] = ['effort' => $this->reasoningEffort];
+        }
+
         $res = Http::withToken($this->key)
             ->timeout(180)
-            ->post($this->baseUrl.'/responses', [
-                'model' => $this->model,
-                'input' => [
-                    ['role' => 'system', 'content' => $system],
-                    ['role' => 'user', 'content' => $user],
-                ],
-                'text' => ['format' => ['type' => 'json_object']],
-            ]);
+            ->post($this->baseUrl.'/responses', $payload);
 
         if (! $res->successful()) {
             throw new RuntimeException('AI xətası ('.$res->status().'): '.$res->json('error.message', $res->body()));

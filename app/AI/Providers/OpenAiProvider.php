@@ -41,22 +41,38 @@ class OpenAiProvider implements AiProvider
         $instructionBlock = trim($instruction) !== '' ? "General instruction:\n".$instruction."\n\n" : '';
         $user = $instructionBlock."Word / prompt:\n".$prompt."\n\nFill these fields (key: description):\n".implode("\n", $lines);
 
+        // Responses API — həm klassik (gpt-4o/mini), həm yeni/reasoning (gpt-5.x, pro) modellərlə işləyir.
         $res = Http::withToken($this->key)
-            ->timeout(60)
-            ->post($this->baseUrl.'/chat/completions', [
+            ->timeout(180)
+            ->post($this->baseUrl.'/responses', [
                 'model' => $this->model,
-                'messages' => [
+                'input' => [
                     ['role' => 'system', 'content' => $system],
                     ['role' => 'user', 'content' => $user],
                 ],
-                'response_format' => ['type' => 'json_object'],
+                'text' => ['format' => ['type' => 'json_object']],
             ]);
 
         if (! $res->successful()) {
             throw new RuntimeException('AI xətası ('.$res->status().'): '.$res->json('error.message', $res->body()));
         }
 
-        $data = json_decode((string) $res->json('choices.0.message.content'), true);
+        // Cavab mətnini çıxar: əvvəlcə convenience `output_text`, olmasa `output[].content[].output_text`.
+        $content = (string) $res->json('output_text', '');
+        if ($content === '') {
+            foreach ($res->json('output', []) as $item) {
+                if (($item['type'] ?? '') !== 'message') {
+                    continue;
+                }
+                foreach ($item['content'] ?? [] as $c) {
+                    if (($c['type'] ?? '') === 'output_text') {
+                        $content .= $c['text'] ?? '';
+                    }
+                }
+            }
+        }
+
+        $data = json_decode($content, true);
         if (! is_array($data)) {
             throw new RuntimeException('AI cavabı oxunmadı.');
         }

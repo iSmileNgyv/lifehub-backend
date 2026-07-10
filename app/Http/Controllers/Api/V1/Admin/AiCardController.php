@@ -12,8 +12,8 @@ use Throwable;
 
 class AiCardController extends Controller
 {
-    /** Bulk-da bir sorğuya neçə söz (xərc/etibarlılıq balansı). */
-    private const BULK_CHUNK = 15;
+    /** Bulk-da bir sorğuya neçə söz (xərc/etibarlılıq balansı; kiçik = daha tam cavab). */
+    private const BULK_CHUNK = 8;
 
     /** POST /study/templates/{template}/generate — bir söz üçün sahələri doldur. */
     public function generate(Request $request, CardTemplate $template): JsonResponse

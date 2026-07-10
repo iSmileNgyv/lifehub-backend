@@ -19,10 +19,22 @@ class AiCardController extends Controller
     public function generate(Request $request, CardTemplate $template): JsonResponse
     {
         $this->owner($request, $template);
-        $data = $request->validate(['word' => ['required', 'string', 'max:500']]);
+        $data = $request->validate([
+            'word' => ['required', 'string', 'max:500'],
+            'only' => ['nullable', 'array'],       // yalnız bu açarları doldur (boşluqlar)
+            'only.*' => ['string', 'max:60'],
+        ]);
+
+        $textFields = $this->textFields($template);
+        if (! empty($data['only'])) {
+            $textFields = array_values(array_filter($textFields, fn ($f) => in_array($f['key'], $data['only'], true)));
+            if (empty($textFields)) {
+                return response()->json(['fields' => []]);
+            }
+        }
 
         try {
-            $fields = AiFactory::make()->generateFields($this->textFields($template), $data['word'], (string) $template->ai_instruction);
+            $fields = AiFactory::make()->generateFields($textFields, $data['word'], (string) $template->ai_instruction);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -37,6 +49,8 @@ class AiCardController extends Controller
         $data = $request->validate([
             'words' => ['required', 'array', 'min:1', 'max:50'],
             'words.*' => ['required', 'string', 'max:500'],
+            'only' => ['nullable', 'array'],       // yalnız bu açarları doldur (boşluqlar)
+            'only.*' => ['string', 'max:60'],
         ]);
 
         try {
@@ -46,6 +60,9 @@ class AiCardController extends Controller
         }
 
         $textFields = $this->textFields($template);
+        if (! empty($data['only'])) {
+            $textFields = array_values(array_filter($textFields, fn ($f) => in_array($f['key'], $data['only'], true)));
+        }
         $instruction = (string) $template->ai_instruction;
         $words = array_values(array_unique(array_map('trim', $data['words'])));
 

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOwner;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
 class VehicleExpense extends Model
 {
+    use BelongsToOwner;
+
     use HasUlids;
 
     protected $table = 'app.vehicle_expenses';

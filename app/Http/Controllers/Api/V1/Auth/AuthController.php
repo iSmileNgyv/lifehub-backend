@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Enums\Language;
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +14,43 @@ use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
+    /** GET /api/v1/auth/registration-status — self-register açıqdırmı (public). */
+    public function registrationStatus(): JsonResponse
+    {
+        return response()->json(['enabled' => Setting::getBool('registration_enabled', false)]);
+    }
+
+    /** POST /api/v1/auth/register — self-register (yalnız açıq olanda). Yeni user öz boş aləmini alır. */
+    public function register(Request $request): JsonResponse
+    {
+        if (! Setting::getBool('registration_enabled', false)) {
+            return response()->json(['message' => __('messages.registration_disabled')], 403);
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'username' => ['required', 'string', 'max:60', 'unique:users,username'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        $user = User::create([
+            'name' => $data['name'],
+            'username' => $data['username'],
+            'password' => Hash::make($data['password']),
+            'status' => UserStatus::Active->value,
+            'is_super_admin' => false,
+        ]);
+
+        $token = $user->createToken('api')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $this->userPayload($user),
+            'permissions' => $user->permissionCodes(),
+            'roles' => $this->rolesPayload($user),
+        ], 201);
+    }
+
     /**
      * POST /api/v1/auth/login
      */

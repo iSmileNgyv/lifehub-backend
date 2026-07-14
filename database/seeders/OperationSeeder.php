@@ -19,13 +19,15 @@ class OperationSeeder extends Seeder
         'cashdesk' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'LEDGER_VIEW'],
         'measure' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
         'category' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
+        'fincategory' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
+        'finance' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'POST'],
         'product' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
         'vehicle' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
         'study' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
         'role' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'ACCESS_MANAGE'],
         'user' => ['VIEW', 'CREATE', 'UPDATE', 'ROLE_ASSIGN'],
         'language' => ['VIEW', 'MANAGE'],
-        'settings' => ['VIEW'],
+        'settings' => ['VIEW', 'MANAGE'],
     ];
 
     /** @var array<string, array<string, string>> module => {az,en,ru} */
@@ -35,6 +37,8 @@ class OperationSeeder extends Seeder
         'cashdesk' => ['az' => 'Kassa', 'en' => 'Cash desk', 'ru' => 'Касса'],
         'measure' => ['az' => 'Ölçü vahidi', 'en' => 'Measure unit', 'ru' => 'Ед. измерения'],
         'category' => ['az' => 'Kateqoriya', 'en' => 'Category', 'ru' => 'Категория'],
+        'fincategory' => ['az' => 'Maliyyə kateqoriyası', 'en' => 'Finance category', 'ru' => 'Финансовая категория'],
+        'finance' => ['az' => 'Maliyyə jurnalı', 'en' => 'Finance journal', 'ru' => 'Финансовый журнал'],
         'product' => ['az' => 'Məhsul', 'en' => 'Product', 'ru' => 'Товар'],
         'vehicle' => ['az' => 'Maşın', 'en' => 'Vehicle', 'ru' => 'Автомобиль'],
         'study' => ['az' => 'Öyrənmə', 'en' => 'Study', 'ru' => 'Обучение'],

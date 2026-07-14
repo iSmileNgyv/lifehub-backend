@@ -6,13 +6,14 @@ use App\Models\Concerns\BelongsToOwner;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
-class VehicleService extends Model
+/** Maliyyə entry-sinin məhsul sətri (draft çek) — post-da silinir. */
+class FinanceJournalLine extends Model
 {
     use BelongsToOwner;
 
     use HasUlids;
 
-    protected $table = 'app.vehicle_services';
+    protected $table = 'app.finance_journal_line';
 
     protected $primaryKey = 'uid';
 
@@ -21,8 +22,8 @@ class VehicleService extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'uid', 'vehicle_uid', 'item_code', 'item_name',
-        'installed_date', 'installed_km', 'life_km', 'life_months', 'note', 'active', 'closed_at',
+        'uid', 'entry_uid', 'item_code', 'item_name', 'measure_code',
+        'qty', 'unit_price', 'amount_lcy', 'sort_order',
     ];
 
     public function uniqueIds(): array
@@ -34,12 +35,10 @@ class VehicleService extends Model
     {
         return [
             'item_name' => 'array',
-            'installed_date' => 'date',
-            'installed_km' => 'decimal:2',
-            'life_km' => 'decimal:2',
-            'life_months' => 'integer',
-            'active' => 'boolean',
-            'closed_at' => 'datetime',
+            'qty' => 'decimal:4',
+            'unit_price' => 'decimal:2',
+            'amount_lcy' => 'decimal:2',
+            'sort_order' => 'integer',
         ];
     }
 }

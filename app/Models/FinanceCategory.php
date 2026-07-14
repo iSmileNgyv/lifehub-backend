@@ -3,14 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOwner;
-use App\Enums\CashDeskStatus;
+use App\Enums\FinanceCategoryType;
 use Illuminate\Database\Eloquent\Model;
 
-class CashDesk extends Model
+class FinanceCategory extends Model
 {
     use BelongsToOwner;
 
-    protected $table = 'app.cash_desk';
+    protected $table = 'app.finance_categories';
 
     protected $primaryKey = 'code';
 
@@ -18,14 +18,14 @@ class CashDesk extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['code', 'description', 'address', 'resp_person', 'balance_lcy', 'status', 'in_use'];
+    protected $fillable = ['code', 'parent_code', 'name', 'type', 'sort_order', 'in_use'];
 
     protected function casts(): array
     {
         return [
-            'description' => 'array',
-            'balance_lcy' => 'decimal:2',
-            'status' => CashDeskStatus::class,
+            'name' => 'array',
+            'type' => FinanceCategoryType::class,
+            'sort_order' => 'integer',
             'in_use' => 'boolean',
         ];
     }

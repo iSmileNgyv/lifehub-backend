@@ -3,17 +3,18 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOwner;
-use App\Enums\CashOrderType;
+use App\Enums\FinanceEntryType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
-class CashLedgerEntry extends Model
+/** Post olunmuş maliyyə sətri (detal) — kateqoriya/amount hesabatının mənbəyi. Qalır. */
+class FinanceLedgerEntry extends Model
 {
     use BelongsToOwner;
 
     use HasUlids;
 
-    protected $table = 'app.cash_ledger_entry';
+    protected $table = 'app.finance_ledger_entry';
 
     protected $primaryKey = 'uid';
 
@@ -22,8 +23,8 @@ class CashLedgerEntry extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'uid', 'transaction_number', 'posting_date', 'doc_no',
-        'cash_desk_code', 'amount_lcy', 'entry_type', 'descr', 'resp_person',
+        'uid', 'transaction_number', 'posting_date', 'jnl_code', 'entry_type',
+        'cash_desk_code', 'category_code', 'amount_lcy', 'descr', 'resp_person',
     ];
 
     public function uniqueIds(): array
@@ -34,7 +35,7 @@ class CashLedgerEntry extends Model
     protected function casts(): array
     {
         return [
-            'entry_type' => CashOrderType::class,
+            'entry_type' => FinanceEntryType::class,
             'posting_date' => 'date',
             'amount_lcy' => 'decimal:2',
         ];

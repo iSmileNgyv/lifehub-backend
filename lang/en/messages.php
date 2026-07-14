@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'registration_disabled' => 'Registration is not active.',
     'invalid_credentials' => 'Invalid username or password.',
     'account_inactive' => 'This account is not active.',
     'logged_out' => 'Logged out.',
@@ -13,6 +14,9 @@ return [
     'in_use_locked' => 'In use — cannot be modified or deleted.',
     'category_has_children' => 'This category has subcategories — cannot be deleted.',
     'category_cycle' => 'A category cannot be moved into its own subtree.',
+    'finance_type_mismatch' => 'Income and expense categories cannot be mixed.',
+    'transfer_needs_target' => 'A target account is required for a transfer.',
+    'transfer_same_desk' => 'Transfer cannot go to the same account.',
     'posted' => 'Posted.',
     'no_stock_access' => 'You have no access to this operation in this warehouse.',
     'super_admin_no_stock' => 'Stock locks do not apply to super admin.',

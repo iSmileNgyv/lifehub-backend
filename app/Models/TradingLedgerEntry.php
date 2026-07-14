@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOwner;
 use App\Enums\TradingEntryType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TradingLedgerEntry extends Model
 {
+    use BelongsToOwner;
+
     use HasUlids;
 
     protected $table = 'app.trading_ledger_entry';

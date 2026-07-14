@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'registration_disabled' => 'Qeydiyyat aktiv deyil.',
     'invalid_credentials' => 'İstifadəçi adı və ya parol yanlışdır.',
     'account_inactive' => 'Bu hesab aktiv deyil.',
     'logged_out' => 'Çıxış edildi.',
@@ -13,6 +14,9 @@ return [
     'in_use_locked' => 'İstifadədədir — dəyişdirilə və ya silinə bilməz.',
     'category_has_children' => 'Bu kateqoriyanın alt-kateqoriyaları var — silinə bilməz.',
     'category_cycle' => 'Kateqoriya öz alt-budağına köçürülə bilməz.',
+    'finance_type_mismatch' => 'Gəlir və xərc kateqoriyaları qarışdırıla bilməz.',
+    'transfer_needs_target' => 'Transfer üçün hədəf hesab seçilməlidir.',
+    'transfer_same_desk' => 'Transfer eyni hesaba edilə bilməz.',
     'posted' => 'Post edildi.',
     'no_stock_access' => 'Bu anbarda bu əməliyyata icazəniz yoxdur.',
     'super_admin_no_stock' => 'Super admin-ə anbar kilidi tətbiq olunmur.',

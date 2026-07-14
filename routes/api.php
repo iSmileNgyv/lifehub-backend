@@ -5,6 +5,10 @@ use App\Http\Controllers\Api\V1\Admin\CardTemplateController;
 use App\Http\Controllers\Api\V1\Admin\AiCardController;
 use App\Http\Controllers\Api\V1\Admin\CashDeskController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\FinanceCategoryController;
+use App\Http\Controllers\Api\V1\Admin\FinanceJournalController;
+use App\Http\Controllers\Api\V1\Admin\FinanceReportController;
+use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\DeckController;
 use App\Http\Controllers\Api\V1\Admin\StudyController;
 use App\Http\Controllers\Api\V1\Admin\ItemController;
@@ -30,6 +34,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('login', [AuthController::class, 'login']);
+        Route::get('registration-status', [AuthController::class, 'registrationStatus']);
+        Route::post('register', [AuthController::class, 'register']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
@@ -87,6 +93,33 @@ Route::prefix('v1')->group(function () {
         Route::put('categories/reorder', [CategoryController::class, 'reorder'])->middleware('access:CATEGORY_UPDATE');
         Route::patch('categories/{category}', [CategoryController::class, 'update'])->middleware('access:CATEGORY_UPDATE');
         Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->middleware('access:CATEGORY_DELETE');
+
+        // Maliyyə kateqoriyaları (gəlir/xərc ağacı — item kateqoriyasından ayrı)
+        Route::get('finance-categories', [FinanceCategoryController::class, 'index'])->middleware('access:FINCATEGORY_VIEW');
+        Route::post('finance-categories', [FinanceCategoryController::class, 'store'])->middleware('access:FINCATEGORY_CREATE');
+        Route::put('finance-categories/reorder', [FinanceCategoryController::class, 'reorder'])->middleware('access:FINCATEGORY_UPDATE');
+        Route::patch('finance-categories/{financeCategory}', [FinanceCategoryController::class, 'update'])->middleware('access:FINCATEGORY_UPDATE');
+        Route::delete('finance-categories/{financeCategory}', [FinanceCategoryController::class, 'destroy'])->middleware('access:FINCATEGORY_DELETE');
+
+        // Maliyyə jurnalı → post → finance_ledger (detal) + cash_ledger (pul)
+        Route::get('finance-journals', [FinanceJournalController::class, 'index'])->middleware('access:FINANCE_VIEW');
+        Route::post('finance-journals', [FinanceJournalController::class, 'store'])->middleware('access:FINANCE_CREATE');
+        Route::get('finance-journals/{financeJournal}', [FinanceJournalController::class, 'showJournal'])->middleware('access:FINANCE_VIEW');
+        Route::delete('finance-journals/{financeJournal}', [FinanceJournalController::class, 'destroy'])->middleware('access:FINANCE_DELETE');
+        Route::post('finance-journals/{financeJournal}/entries', [FinanceJournalController::class, 'addEntry'])->middleware('access:FINANCE_CREATE');
+        Route::patch('finance-journals/{financeJournal}/entries/{entry}', [FinanceJournalController::class, 'updateEntry'])->middleware('access:FINANCE_UPDATE');
+        Route::delete('finance-journals/{financeJournal}/entries/{entry}', [FinanceJournalController::class, 'deleteEntry'])->middleware('access:FINANCE_DELETE');
+        Route::put('finance-journals/{financeJournal}/entries/{entry}/lines', [FinanceJournalController::class, 'saveLines'])->middleware('access:FINANCE_UPDATE');
+        Route::post('finance-journals/{financeJournal}/post', [FinanceJournalController::class, 'post'])->middleware('access:FINANCE_POST');
+
+        // Maliyyə hesabatları (kateqoriya / məhsul / kassa)
+        Route::get('finance-reports/summary', [FinanceReportController::class, 'summary'])->middleware('access:FINANCE_VIEW');
+        Route::get('finance-reports/items', [FinanceReportController::class, 'items'])->middleware('access:FINANCE_VIEW');
+        Route::get('finance-reports/cash', [FinanceReportController::class, 'cash'])->middleware('access:FINANCE_VIEW');
+
+        // Sistem ayarları
+        Route::get('settings', [SettingController::class, 'index'])->middleware('access:SETTINGS_VIEW');
+        Route::put('settings', [SettingController::class, 'update'])->middleware('access:SETTINGS_MANAGE');
 
         // Katalog: məhsullar / ehtiyat hissələr (items)
         Route::get('items', [ItemController::class, 'index'])->middleware('access:PRODUCT_VIEW');

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOwner;
 use App\Enums\CategoryStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class ItemCategory extends Model
 {
+    use BelongsToOwner;
+
     protected $table = 'app.item_categories';
 
     protected $primaryKey = 'code';

@@ -67,6 +67,16 @@ class ItemController extends Controller
         ]);
     }
 
+    /** GET /api/v1/items/by-barcode/{barcode} — barkodla dəqiq axtarış (skaner üçün). */
+    public function byBarcode(string $barcode): JsonResponse
+    {
+        $code = DB::table('app.item_barcodes')->where('barcode', trim($barcode))->value('item_code');
+        $item = $code ? Item::find($code) : null; // Item::find owner-scoped → başqa tenant tapılmır
+        abort_unless($item, 404);
+
+        return response()->json($this->payload($item));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $this->validateData($request, isUpdate: false);

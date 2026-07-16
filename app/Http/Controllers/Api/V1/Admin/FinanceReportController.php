@@ -45,14 +45,16 @@ class FinanceReportController extends Controller
     {
         [$from, $to] = $this->range($request);
 
+        // Variant üzrə qrup: eyni məhsulun 5L "ədəd" və 8L "ədəd" ayrı sətirdir (item + vahid + çəki)
         $rows = FinanceLedgerLine::query()
             ->whereBetween('posting_date', [$from, $to])
             ->get()
-            ->groupBy('item_code')
+            ->groupBy(fn (FinanceLedgerLine $l) => $l->item_code.'|'.($l->measure_code ?? '').'|'.($l->meas_weight ?? ''))
             ->map(fn ($g) => [
                 'item_code' => $g->first()->item_code,
                 'item_name' => $g->first()->item_name,
                 'measure_code' => $g->first()->measure_code,
+                'meas_weight' => $g->first()->meas_weight,
                 'qty' => round((float) $g->sum('qty'), 4),
                 'total' => round((float) $g->sum('amount_lcy'), 2),
             ])

@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToOwner;
 use App\Enums\FinanceEntryType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Post olunmuş maliyyə sətri (detal) — kateqoriya/amount hesabatının mənbəyi. Qalır. */
 class FinanceLedgerEntry extends Model
@@ -30,6 +31,12 @@ class FinanceLedgerEntry extends Model
     public function uniqueIds(): array
     {
         return ['uid'];
+    }
+
+    /** @return HasMany<FinanceLedgerLine, $this> */
+    public function lines(): HasMany
+    {
+        return $this->hasMany(FinanceLedgerLine::class, 'ledger_entry_uid', 'uid');
     }
 
     protected function casts(): array

@@ -8,10 +8,12 @@ use App\Models\CashDesk;
 use App\Models\CashLedgerEntry;
 use App\Models\FinanceJournal;
 use App\Models\FinanceJournalEntry;
+use App\Models\FinanceJournalLine;
 use App\Models\FinanceLedgerEntry;
 use App\Models\FinanceLedgerLine;
 use App\Support\TransactionNumber;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -86,6 +88,7 @@ class FinancePostingService
                 'item_code' => $line->item_code,
                 'item_name' => $line->item_name,
                 'measure_code' => $line->measure_code,
+                'meas_weight' => $line->meas_weight,
                 'qty' => $line->qty,
                 'unit_price' => $line->unit_price,
                 'amount_lcy' => $line->amount_lcy,
@@ -93,6 +96,70 @@ class FinancePostingService
         }
 
         $this->cashMove($txn, $date, $journal->code, $entry->cash_desk_code, $type->cashDirection(), $amount, $entry->descr, $user);
+    }
+
+    /**
+     * Post olunmuş ledger sətrini GERİ QAYTAR (unpost): kassanı geri al, ledger yazılarını sil,
+     * draft entry-ni öz jurnalında (yoxdursa yeni jurnal) bərpa et. Qaytarır: bərpa olunan draft entry.
+     * Yalnız gəlir/xərc (finance_ledger_entry). Transferlər burda deyil (yalnız kassada).
+     */
+    public function reverse(FinanceLedgerEntry $ledger, ?string $user): FinanceJournalEntry
+    {
+        return DB::transaction(function () use ($ledger, $user) {
+            $txn = $ledger->transaction_number;
+
+            // 1) Jurnal (yoxdursa posting_date ilə yeni yarat)
+            $journal = ($ledger->jnl_code ? FinanceJournal::find($ledger->jnl_code) : null)
+                ?? FinanceJournal::create([
+                    'code' => 'FJ'.strtoupper(substr((string) Str::ulid(), -8)),
+                    'journal_date' => $ledger->posting_date->toDateString(),
+                    'resp_person' => $user,
+                ]);
+
+            // 2) Draft entry bərpa
+            $entry = FinanceJournalEntry::create([
+                'jnl_code' => $journal->code,
+                'posting_date' => $ledger->posting_date->toDateString(),
+                'entry_type' => $ledger->entry_type->value,
+                'cash_desk_code' => $ledger->cash_desk_code,
+                'to_cash_desk_code' => null,
+                'category_code' => $ledger->category_code,
+                'amount_lcy' => $ledger->amount_lcy,
+                'descr' => $ledger->descr,
+                'resp_person' => $user,
+            ]);
+
+            // 3) Məhsul sətirləri (çek) bərpa
+            foreach ($ledger->lines()->orderBy('created_at')->get()->values() as $i => $line) {
+                FinanceJournalLine::create([
+                    'entry_uid' => $entry->uid,
+                    'item_code' => $line->item_code,
+                    'item_name' => $line->item_name,
+                    'measure_code' => $line->measure_code,
+                    'meas_weight' => $line->meas_weight,
+                    'qty' => $line->qty,
+                    'unit_price' => $line->unit_price,
+                    'amount_lcy' => $line->amount_lcy,
+                    'sort_order' => $i,
+                ]);
+            }
+
+            // 4) Kassa hərəkətlərini geri al (bu transaction_number üzrə) və sil
+            foreach (CashLedgerEntry::where('transaction_number', $txn)->get() as $cash) {
+                $desk = CashDesk::whereKey($cash->cash_desk_code)->lockForUpdate()->first();
+                if ($desk) {
+                    $desk->balance_lcy = round((float) $desk->balance_lcy - $cash->entry_type->sign() * (float) $cash->amount_lcy, 2);
+                    $desk->save();
+                }
+                $cash->delete();
+            }
+
+            // 5) Ledger yazılarını sil
+            $ledger->lines()->delete();
+            $ledger->delete();
+
+            return $entry;
+        });
     }
 
     /** cash_ledger yazısı + hesab balansı. */

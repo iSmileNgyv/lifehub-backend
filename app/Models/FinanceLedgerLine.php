@@ -23,7 +23,7 @@ class FinanceLedgerLine extends Model
 
     protected $fillable = [
         'uid', 'ledger_entry_uid', 'posting_date', 'item_code', 'item_name',
-        'measure_code', 'qty', 'unit_price', 'amount_lcy',
+        'measure_code', 'meas_weight', 'qty', 'unit_price', 'amount_lcy',
     ];
 
     public function uniqueIds(): array
@@ -36,6 +36,7 @@ class FinanceLedgerLine extends Model
         return [
             'posting_date' => 'date',
             'item_name' => 'array',
+            'meas_weight' => 'decimal:4',
             'qty' => 'decimal:4',
             'unit_price' => 'decimal:2',
             'amount_lcy' => 'decimal:2',

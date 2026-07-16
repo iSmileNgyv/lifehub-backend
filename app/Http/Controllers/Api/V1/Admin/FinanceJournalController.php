@@ -8,6 +8,7 @@ use App\Models\FinanceJournal;
 use App\Models\FinanceJournalEntry;
 use App\Models\FinanceJournalLine;
 use App\Models\Item;
+use App\Models\ItemMeasurement;
 use App\Services\FinancePostingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
@@ -109,6 +110,8 @@ class FinanceJournalController extends Controller
         $data = $request->validate([
             'lines' => ['present', 'array'],
             'lines.*.item_code' => ['required', 'string', Rule::exists('items', 'code')],
+            'lines.*.measure_code' => ['nullable', 'string', 'max:30'],
+            'lines.*.meas_weight' => ['nullable', 'numeric', 'gt:0'],
             'lines.*.qty' => ['required', 'numeric', 'gt:0'],
             'lines.*.unit_price' => ['required', 'numeric', 'gte:0'],
         ]);
@@ -118,13 +121,32 @@ class FinanceJournalController extends Controller
             $total = 0.0;
             foreach (array_values($data['lines']) as $i => $line) {
                 $item = Item::find($line['item_code']);
+                $base = $item?->base_measure_code;
+                // Ölçü vahidi: baza, ya da item-in items_measurement variantı (vahid + çəki)
+                $measureCode = $line['measure_code'] ?? null;
+                $measWeight = isset($line['meas_weight']) ? (float) $line['meas_weight'] : null;
+                if ($measureCode !== null && $item && $measureCode !== $base) {
+                    // Variant → (item, vahid, çəki) mövcud olmalıdır
+                    $q = ItemMeasurement::where('item_code', $item->code)->where('measure_code', $measureCode);
+                    if ($measWeight !== null) {
+                        $q->where('meas_weight', $measWeight);
+                    }
+                    if (! $q->exists()) {
+                        throw ValidationException::withMessages(['lines' => __('validation.exists', ['attribute' => 'measure_code'])]);
+                    }
+                } else {
+                    // Baza vahidi → çəki yoxdur (×1)
+                    $measureCode = $base;
+                    $measWeight = null;
+                }
                 $amount = round((float) $line['qty'] * (float) $line['unit_price'], 2);
                 $total += $amount;
                 FinanceJournalLine::create([
                     'entry_uid' => $entry->uid,
                     'item_code' => $line['item_code'],
                     'item_name' => $item?->name,
-                    'measure_code' => $item?->base_measure_code,
+                    'measure_code' => $measureCode,
+                    'meas_weight' => $measWeight,
                     'qty' => $line['qty'],
                     'unit_price' => $line['unit_price'],
                     'amount_lcy' => $amount,
@@ -232,6 +254,7 @@ class FinanceJournalController extends Controller
                 'item_code' => $l->item_code,
                 'item_name' => $l->item_name,
                 'measure_code' => $l->measure_code,
+                'meas_weight' => $l->meas_weight,
                 'qty' => $l->qty,
                 'unit_price' => $l->unit_price,
                 'amount_lcy' => $l->amount_lcy,

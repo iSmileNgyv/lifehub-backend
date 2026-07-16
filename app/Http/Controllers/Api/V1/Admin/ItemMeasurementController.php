@@ -27,7 +27,9 @@ class ItemMeasurementController extends Controller
                 'required', 'string',
                 Rule::exists('measurements', 'code'),
                 Rule::notIn([$item->base_measure_code]),
-                Rule::unique('items_measurement', 'measure_code')->where(fn ($q) => $q->where('item_code', $item->code)),
+                // Eyni vahid təkrar ola bilər (5L "ədəd" vs 8L "ədəd") → yalnız eyni (vahid+çəki) cütü qadağan.
+                Rule::unique('items_measurement', 'measure_code')
+                    ->where(fn ($q) => $q->where('item_code', $item->code)->where('meas_weight', $request->input('meas_weight'))),
             ],
             'meas_weight' => ['required', 'numeric', 'gt:0'],
         ]);
@@ -54,7 +56,7 @@ class ItemMeasurementController extends Controller
                 Rule::exists('measurements', 'code'),
                 Rule::notIn([$item->base_measure_code]),
                 Rule::unique('items_measurement', 'measure_code')
-                    ->where(fn ($q) => $q->where('item_code', $item->code))
+                    ->where(fn ($q) => $q->where('item_code', $item->code)->where('meas_weight', $request->input('meas_weight', $measurement->meas_weight)))
                     ->ignore($measurement->uid, 'uid'),
             ],
             'meas_weight' => ['sometimes', 'required', 'numeric', 'gt:0'],

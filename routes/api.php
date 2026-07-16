@@ -7,12 +7,14 @@ use App\Http\Controllers\Api\V1\Admin\CashDeskController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\FinanceCategoryController;
 use App\Http\Controllers\Api\V1\Admin\FinanceJournalController;
+use App\Http\Controllers\Api\V1\Admin\FinanceLedgerController;
 use App\Http\Controllers\Api\V1\Admin\FinanceReportController;
 use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\DeckController;
 use App\Http\Controllers\Api\V1\Admin\StudyController;
 use App\Http\Controllers\Api\V1\Admin\ItemController;
 use App\Http\Controllers\Api\V1\Admin\ItemMeasurementController;
+use App\Http\Controllers\Api\V1\Admin\ItemPriceController;
 use App\Http\Controllers\Api\V1\Admin\LanguageController;
 use App\Http\Controllers\Api\V1\Admin\MeasurementController;
 use App\Http\Controllers\Api\V1\Admin\VehicleController;
@@ -113,6 +115,11 @@ Route::prefix('v1')->group(function () {
         Route::post('finance-journals/{financeJournal}/post', [FinanceJournalController::class, 'post'])->middleware('access:FINANCE_POST');
 
         // Maliyyə hesabatları (kateqoriya / məhsul / kassa)
+        // Post olunmuş ledger — baxış + geri qaytar (reverse) + qeyd/kateqoriya redaktəsi
+        Route::get('finance-ledger', [FinanceLedgerController::class, 'index'])->middleware('access:FINANCE_VIEW');
+        Route::patch('finance-ledger/{financeLedger}', [FinanceLedgerController::class, 'updatePosted'])->middleware('access:FINANCE_UPDATE');
+        Route::post('finance-ledger/{financeLedger}/reverse', [FinanceLedgerController::class, 'reverse'])->middleware('access:FINANCE_POST');
+
         Route::get('finance-reports/summary', [FinanceReportController::class, 'summary'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/items', [FinanceReportController::class, 'items'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/cash', [FinanceReportController::class, 'cash'])->middleware('access:FINANCE_VIEW');
@@ -123,6 +130,9 @@ Route::prefix('v1')->group(function () {
 
         // Katalog: məhsullar / ehtiyat hissələr (items)
         Route::get('items', [ItemController::class, 'index'])->middleware('access:PRODUCT_VIEW');
+        Route::get('items/by-barcode/{barcode}', [ItemController::class, 'byBarcode'])->middleware('access:PRODUCT_VIEW');
+        Route::get('items/{item}/last-prices', [ItemPriceController::class, 'lastPrices'])->middleware('access:PRODUCT_VIEW');
+        Route::get('items/{item}/price-history', [ItemPriceController::class, 'history'])->middleware('access:PRODUCT_VIEW');
         Route::post('items', [ItemController::class, 'store'])->middleware('access:PRODUCT_CREATE');
         Route::patch('items/{item}', [ItemController::class, 'update'])->middleware('access:PRODUCT_UPDATE');
         Route::delete('items/{item}', [ItemController::class, 'destroy'])->middleware('access:PRODUCT_DELETE');

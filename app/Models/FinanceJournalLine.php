@@ -22,7 +22,7 @@ class FinanceJournalLine extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'uid', 'entry_uid', 'item_code', 'item_name', 'measure_code',
+        'uid', 'entry_uid', 'item_code', 'item_name', 'measure_code', 'meas_weight',
         'qty', 'unit_price', 'amount_lcy', 'sort_order',
     ];
 
@@ -35,6 +35,7 @@ class FinanceJournalLine extends Model
     {
         return [
             'item_name' => 'array',
+            'meas_weight' => 'decimal:4',
             'qty' => 'decimal:4',
             'unit_price' => 'decimal:2',
             'amount_lcy' => 'decimal:2',

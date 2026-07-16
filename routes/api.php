@@ -118,6 +118,7 @@ Route::prefix('v1')->group(function () {
         // Post olunmuş ledger — baxış + geri qaytar (reverse) + qeyd/kateqoriya redaktəsi
         Route::get('finance-ledger', [FinanceLedgerController::class, 'index'])->middleware('access:FINANCE_VIEW');
         Route::patch('finance-ledger/{financeLedger}', [FinanceLedgerController::class, 'updatePosted'])->middleware('access:FINANCE_UPDATE');
+        Route::patch('finance-ledger/{financeLedger}/lines', [FinanceLedgerController::class, 'saveLines'])->middleware('access:FINANCE_UPDATE');
         Route::post('finance-ledger/{financeLedger}/reverse', [FinanceLedgerController::class, 'reverse'])->middleware('access:FINANCE_POST');
 
         Route::get('finance-reports/summary', [FinanceReportController::class, 'summary'])->middleware('access:FINANCE_VIEW');

@@ -11,9 +11,12 @@ use App\Models\FinanceJournalEntry;
 use App\Models\FinanceJournalLine;
 use App\Models\FinanceLedgerEntry;
 use App\Models\FinanceLedgerLine;
+use App\Models\Item;
+use App\Models\ItemMeasurement;
 use App\Support\TransactionNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -159,6 +162,73 @@ class FinancePostingService
             $ledger->delete();
 
             return $entry;
+        });
+    }
+
+    /**
+     * Post olunmuş ledger sətrinin məhsul detalını (çek) YERİNDƏ redaktə et.
+     * Sətirləri əvəz edir, entry məbləğini cəmə görə yeniləyir və kassa FƏRQİNİ avtomatik düzəldir.
+     * Yalnız gəlir/xərc (tək kassa yazısı) — pul konsistent qalır. Qaytarır: yenilənmiş ledger.
+     *
+     * @param array<int, array<string, mixed>> $lines
+     */
+    public function updateLedgerLines(FinanceLedgerEntry $ledger, array $lines): FinanceLedgerEntry
+    {
+        return DB::transaction(function () use ($ledger, $lines) {
+            $ledger->lines()->delete();
+            $total = 0.0;
+            foreach (array_values($lines) as $line) {
+                $item = Item::find($line['item_code']);
+                $base = $item?->base_measure_code;
+                $measureCode = $line['measure_code'] ?? null;
+                $measWeight = isset($line['meas_weight']) ? (float) $line['meas_weight'] : null;
+                if ($measureCode !== null && $item && $measureCode !== $base) {
+                    $q = ItemMeasurement::where('item_code', $item->code)->where('measure_code', $measureCode);
+                    if ($measWeight !== null) {
+                        $q->where('meas_weight', $measWeight);
+                    }
+                    if (! $q->exists()) {
+                        throw ValidationException::withMessages(['lines' => __('validation.exists', ['attribute' => 'measure_code'])]);
+                    }
+                } else {
+                    $measureCode = $base;
+                    $measWeight = null;
+                }
+                $amount = round((float) $line['qty'] * (float) $line['unit_price'], 2);
+                $total += $amount;
+                FinanceLedgerLine::create([
+                    'ledger_entry_uid' => $ledger->uid,
+                    'posting_date' => $ledger->posting_date->toDateString(),
+                    'item_code' => $line['item_code'],
+                    'item_name' => $item?->name,
+                    'measure_code' => $measureCode,
+                    'meas_weight' => $measWeight,
+                    'qty' => $line['qty'],
+                    'unit_price' => $line['unit_price'],
+                    'amount_lcy' => $amount,
+                ]);
+            }
+
+            // Sətirlər varsa → məbləğ = cəm, kassa fərqini düzəlt
+            if (! empty($lines)) {
+                $new = round($total, 2);
+                $delta = round($new - (float) $ledger->amount_lcy, 2);
+                if (abs($delta) >= 0.005) {
+                    $cash = CashLedgerEntry::where('transaction_number', $ledger->transaction_number)->first();
+                    if ($cash) {
+                        $cash->amount_lcy = $new;
+                        $cash->save();
+                    }
+                    $desk = CashDesk::whereKey($ledger->cash_desk_code)->lockForUpdate()->first();
+                    if ($desk) {
+                        $desk->balance_lcy = round((float) $desk->balance_lcy + $ledger->entry_type->cashDirection()->sign() * $delta, 2);
+                        $desk->save();
+                    }
+                    $ledger->update(['amount_lcy' => $new]);
+                }
+            }
+
+            return $ledger->fresh('lines');
         });
     }
 

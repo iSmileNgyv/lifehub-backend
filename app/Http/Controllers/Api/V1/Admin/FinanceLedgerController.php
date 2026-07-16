@@ -70,6 +70,23 @@ class FinanceLedgerController extends Controller
         return response()->json($this->payload($financeLedger->fresh('lines')));
     }
 
+    /** PATCH /api/v1/finance-ledger/{financeLedger}/lines — çek sətirlərini yerində redaktə et (kassa fərqi avtomatik). */
+    public function saveLines(Request $request, FinanceLedgerEntry $financeLedger): JsonResponse
+    {
+        $data = $request->validate([
+            'lines' => ['present', 'array'],
+            'lines.*.item_code' => ['required', 'string', Rule::exists('items', 'code')],
+            'lines.*.measure_code' => ['nullable', 'string', 'max:30'],
+            'lines.*.meas_weight' => ['nullable', 'numeric', 'gt:0'],
+            'lines.*.qty' => ['required', 'numeric', 'gt:0'],
+            'lines.*.unit_price' => ['required', 'numeric', 'gte:0'],
+        ]);
+
+        $updated = $this->posting->updateLedgerLines($financeLedger, $data['lines']);
+
+        return response()->json($this->payload($updated));
+    }
+
     /** POST /api/v1/finance-ledger/{financeLedger}/reverse — geri qaytar (draft-a). */
     public function reverse(Request $request, FinanceLedgerEntry $financeLedger): JsonResponse
     {

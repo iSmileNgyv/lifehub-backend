@@ -29,8 +29,10 @@ use App\Http\Controllers\Api\V1\Admin\TradingJournalEntryController;
 use App\Http\Controllers\Api\V1\Admin\RoleAccessController;
 use App\Http\Controllers\Api\V1\Admin\RoleController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
+use App\Http\Controllers\Api\V1\Admin\TelegramController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\FileController;
+use App\Http\Controllers\Api\V1\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -51,8 +53,17 @@ Route::prefix('v1')->group(function () {
     // Fayl servisi: yükləmə (auth), göstərmə public (<img> üçün)
     Route::get('files/{file}', [FileController::class, 'show']);
 
+    // Telegram webhook (prod) — public, URL+header secret ilə qorunur
+    Route::post('telegram/webhook/{secret}', [TelegramWebhookController::class, 'handle']);
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('files', [FileController::class, 'store']);
+
+        // Telegram: bağlama + study push konfiqurasiyası (istifadəçi öz botu)
+        Route::get('telegram', [TelegramController::class, 'show']);
+        Route::post('telegram/link-code', [TelegramController::class, 'linkCode']);
+        Route::post('telegram/unlink', [TelegramController::class, 'unlink']);
+        Route::put('telegram/settings', [TelegramController::class, 'saveSettings']);
 
         // Dillər: aktiv siyahı hər kəsə (formalar üçün), idarəetmə LANGUAGE_MANAGE ilə
         Route::get('languages', [LanguageController::class, 'index']);

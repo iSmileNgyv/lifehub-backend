@@ -64,6 +64,33 @@ class FinanceReportController extends Controller
         return response()->json(['from' => $from, 'to' => $to, 'rows' => $rows, 'total' => round((float) $rows->sum('total'), 2)]);
     }
 
+    /** GET /api/v1/finance-reports/trend?months=6 — son N ay üzrə gəlir/xərc (dashboard chart). */
+    public function trend(Request $request): JsonResponse
+    {
+        $months = min(24, max(1, (int) $request->query('months', 6)));
+        $start = now()->startOfMonth()->subMonths($months - 1);
+
+        $rows = FinanceLedgerEntry::query()
+            ->where('posting_date', '>=', $start->toDateString())
+            ->selectRaw("to_char(posting_date, 'YYYY-MM') as ym, entry_type::text as etype, SUM(amount_lcy) as total")
+            ->groupBy('ym', 'etype')
+            ->get();
+
+        // Boş ay-larla birlikdə tam interval qur
+        $buckets = [];
+        for ($i = 0; $i < $months; $i++) {
+            $m = $start->copy()->addMonths($i)->format('Y-m');
+            $buckets[$m] = ['month' => $m, 'income' => 0.0, 'expense' => 0.0];
+        }
+        foreach ($rows as $r) {
+            if (isset($buckets[$r->ym]) && in_array($r->etype, ['income', 'expense'], true)) {
+                $buckets[$r->ym][$r->etype] = round((float) $r->total, 2);
+            }
+        }
+
+        return response()->json(['months' => array_values($buckets)]);
+    }
+
     /** GET /api/v1/finance-reports/cash?from=&to=&cash_desk= — kassa pul hərəkəti + balanslar */
     public function cash(Request $request): JsonResponse
     {

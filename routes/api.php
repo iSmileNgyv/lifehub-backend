@@ -121,6 +121,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('finance-ledger/{financeLedger}/lines', [FinanceLedgerController::class, 'saveLines'])->middleware('access:FINANCE_UPDATE');
         Route::post('finance-ledger/{financeLedger}/reverse', [FinanceLedgerController::class, 'reverse'])->middleware('access:FINANCE_POST');
 
+        Route::get('finance-reports/trend', [FinanceReportController::class, 'trend'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/summary', [FinanceReportController::class, 'summary'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/items', [FinanceReportController::class, 'items'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/cash', [FinanceReportController::class, 'cash'])->middleware('access:FINANCE_VIEW');

@@ -73,6 +73,7 @@ class CardTemplateController extends Controller
             'fields.*.side' => ['required', Rule::in(['front', 'back'])],
             'fields.*.section' => ['nullable', 'string', 'max:120'],
             'fields.*.list' => ['nullable', 'boolean'],   // kart siyahısında göstərilsin?
+            'fields.*.tgFront' => ['nullable', 'boolean'], // Telegram bot ön mesajında göstər?
             // Kətan yerləşməsi (grid): x/y mövqe, w/h ölçü
             'fields.*.x' => ['nullable', 'integer', 'min:0', 'max:24'],
             'fields.*.y' => ['nullable', 'integer', 'min:0', 'max:400'],

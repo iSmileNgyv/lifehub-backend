@@ -3,6 +3,8 @@
 namespace App\Telegram\Modules;
 
 use App\Models\Card;
+use App\Models\CardTemplate;
+use App\Models\Deck;
 use App\Models\StoredFile;
 use App\Models\TelegramSetting;
 use App\Support\Srs;
@@ -14,6 +16,9 @@ use Illuminate\Support\Facades\Storage;
 /** Study (flashcard/SM-2) — Telegram-dan öyrənmə: ön → Göstər → arxa + qiymət → növbəti. */
 class StudyTelegramModule implements TelegramModule
 {
+    /** @var array<string, CardTemplate|null> deck_uid → template */
+    private array $tplCache = [];
+
     public function commands(): array
     {
         return ['learn'];
@@ -87,10 +92,12 @@ class StudyTelegramModule implements TelegramModule
 
     private function sendFront(TelegramContext $ctx, Card $card): void
     {
+        $tpl = $this->templateFor($card);
         $buttons = [[['text' => '👁 Göstər', 'callback_data' => "st:show:{$card->uid}"]]];
-        $text = $this->clean($card->front);
+        $text = $this->renderSide($card, $tpl, front: true);
+        $img = $this->sideImage($card, $tpl, front: true);
 
-        if ($card->front_image && ($bytes = $this->imageBytes($card->front_image))) {
+        if ($img && ($bytes = $this->imageBytes($img))) {
             $ctx->photo($bytes, 'front.jpg', $text ?: null, $buttons);
         } else {
             $ctx->say($text !== '' ? $text : '—', $buttons);
@@ -120,9 +127,11 @@ class StudyTelegramModule implements TelegramModule
                 ['text' => "😎 Asan · {$p['easy']}g", 'callback_data' => "st:rate:{$uid}:easy"],
             ],
         ];
-        $text = $this->clean($card->back);
+        $tpl = $this->templateFor($card);
+        $text = $this->renderSide($card, $tpl, front: false);
+        $img = $this->sideImage($card, $tpl, front: false);
 
-        if ($card->back_image && ($bytes = $this->imageBytes($card->back_image))) {
+        if ($img && ($bytes = $this->imageBytes($img))) {
             $ctx->photo($bytes, 'back.jpg', $text ?: null, $buttons);
         } else {
             $ctx->say($text !== '' ? $text : '—', $buttons);
@@ -147,6 +156,104 @@ class StudyTelegramModule implements TelegramModule
         $ctx->answer("✓ {$card->interval} gün sonra");
         $ctx->clearButtons();
         $this->sendNext($ctx);
+    }
+
+    /** Kartın deck şablonu (varsa). Owner-scoped. */
+    private function templateFor(Card $card): ?CardTemplate
+    {
+        if (array_key_exists($card->deck_uid, $this->tplCache)) {
+            return $this->tplCache[$card->deck_uid];
+        }
+        $deck = Deck::find($card->deck_uid);
+        $tpl = $deck && $deck->template_uid ? CardTemplate::find($deck->template_uid) : null;
+
+        return $this->tplCache[$card->deck_uid] = $tpl;
+    }
+
+    /** Şablonda hər hansı sahə "Telegram ön"ə işarələnib? */
+    private function hasTgFront(CardTemplate $tpl): bool
+    {
+        foreach ($tpl->fields as $f) {
+            if (! empty($f['tgFront'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Bir tərəfi mətn kimi render et.
+     * Şablonlu kart: ön = tgFront işarəli sahələr (yoxdursa side='front'); Göstər = qalanı (label: dəyər).
+     * Sadə kart: front/back sütunları.
+     */
+    private function renderSide(Card $card, ?CardTemplate $tpl, bool $front): string
+    {
+        if ($card->fields && $tpl) {
+            $useTg = $this->hasTgFront($tpl);
+            $lines = [];
+            foreach ($tpl->fields as $f) {
+                $type = $f['type'] ?? 'text';
+                $onFront = $useTg ? ! empty($f['tgFront']) : (($f['side'] ?? '') === 'front');
+                if ($front !== $onFront) {
+                    continue;
+                }
+                if ($type === 'heading') {
+                    if (! $front) {
+                        $lines[] = '<b>'.$this->clean($f['label'] ?? '').'</b>';
+                    }
+
+                    continue;
+                }
+                if ($type === 'image') {
+                    continue;
+                }
+                $val = $card->fields[$f['key'] ?? ''] ?? null;
+                if ($val === null || trim((string) $val) === '') {
+                    continue;
+                }
+                $text = ($type === 'rich') ? $this->stripHtml((string) $val) : (string) $val;
+                $lines[] = $front
+                    ? $this->clean($text)
+                    : '<b>'.$this->clean($f['label'] ?? '').':</b> '.$this->clean($text);
+            }
+
+            return implode($front ? ' · ' : "\n", $lines);
+        }
+
+        return $this->clean($front ? $card->front : $card->back);
+    }
+
+    /** Bir tərəfin şəkli (stored_file uid): sütun, yoxsa şablon image sahəsi. */
+    private function sideImage(Card $card, ?CardTemplate $tpl, bool $front): ?string
+    {
+        $col = $front ? $card->front_image : $card->back_image;
+        if ($col) {
+            return $col;
+        }
+        if ($card->fields && $tpl) {
+            $useTg = $this->hasTgFront($tpl);
+            foreach ($tpl->fields as $f) {
+                if (($f['type'] ?? '') !== 'image') {
+                    continue;
+                }
+                $onFront = $useTg ? ! empty($f['tgFront']) : (($f['side'] ?? '') === 'front');
+                if ($front !== $onFront) {
+                    continue;
+                }
+                $val = $card->fields[$f['key'] ?? ''] ?? null;
+                if ($val) {
+                    return (string) $val;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function stripHtml(string $s): string
+    {
+        return trim(preg_replace('/\s+/', ' ', strip_tags($s)) ?? '');
     }
 
     private function imageBytes(string $uid): ?string

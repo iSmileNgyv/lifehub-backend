@@ -18,6 +18,7 @@ return [
     'transfer_needs_target' => 'Transfer üçün hədəf hesab seçilməlidir.',
     'transfer_same_desk' => 'Transfer eyni hesaba edilə bilməz.',
     'posted' => 'Post edildi.',
+    'no_sample_card' => 'Bu şablonla kart yoxdur — əvvəl bir kart yarat.',
     'reversed' => 'Geri qaytarıldı — draft olaraq bərpa edildi.',
     'no_stock_access' => 'Bu anbarda bu əməliyyata icazəniz yoxdur.',
     'super_admin_no_stock' => 'Super admin-ə anbar kilidi tətbiq olunmur.',

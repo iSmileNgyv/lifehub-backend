@@ -7,6 +7,7 @@ use App\Models\CardTemplate;
 use App\Models\Deck;
 use App\Models\StoredFile;
 use App\Models\TelegramSetting;
+use App\Support\CardRenderer;
 use App\Support\Srs;
 use App\Telegram\Contracts\TelegramModule;
 use App\Telegram\TelegramContext;
@@ -57,6 +58,10 @@ class StudyTelegramModule implements TelegramModule
         if ($action === 'learn') {
             $ctx->answer();
             $this->sendNext($ctx);
+        } elseif ($action === 'next' && isset($parts[2])) {
+            $ctx->answer();
+            $ctx->clearButtons();
+            $this->sendNext($ctx, $parts[2]); // öyrənmə modu: növbəti (cari istisna)
         } elseif ($action === 'show' && isset($parts[2])) {
             $this->reveal($ctx, $parts[2]);
         } elseif ($action === 'rate' && isset($parts[2], $parts[3])) {
@@ -87,7 +92,12 @@ class StudyTelegramModule implements TelegramModule
         return $q;
     }
 
-    /** Növbəti due kartı göndər və ya "bitdi" (on-demand /learn üçün). */
+    private function mode(): string
+    {
+        return optional(TelegramSetting::find(Auth::user()->uid))->mode ?? 'flashcard';
+    }
+
+    /** Növbəti due kartı göndər və ya "bitdi" (rejimə görə). */
     private function sendNext(TelegramContext $ctx, ?string $excludeUid = null): void
     {
         $card = $this->dueQuery($excludeUid)->first();
@@ -96,15 +106,37 @@ class StudyTelegramModule implements TelegramModule
 
             return;
         }
-        $this->sendFront($ctx, $card);
+        if ($this->mode() === 'learning') {
+            $this->sendLearning($ctx, $card);
+        } else {
+            $this->sendFront($ctx, $card);
+        }
+    }
+
+    /** Öyrənmə modu: soruşmadan tam kartı göstər (ön + arxa, sıralı) + Növbəti. */
+    private function sendLearning(TelegramContext $ctx, Card $card): void
+    {
+        $r = (new CardRenderer)->render($card, $this->templateFor($card), 'telegram');
+        $front = $this->clean($r['front']);
+        $back = $this->clean($r['back']);
+        $text = trim($front.($back !== '' ? "\n———\n".$back : ''));
+        $buttons = [[['text' => '➡️ Növbəti', 'callback_data' => "st:next:{$card->uid}"]]];
+        $img = $r['front_image'] ?: $r['back_image'];
+
+        if ($img && ($bytes = $this->imageBytes($img))) {
+            $ctx->photo($bytes, 'card.jpg', $text ?: null, $buttons);
+        } else {
+            $ctx->say($text !== '' ? $text : '—', $buttons);
+        }
     }
 
     /** Proaktiv push — N due kart göndər (yoxdursa səssiz). Qaytarır: göndərilən say. */
     public function pushDue(TelegramContext $ctx, int $count): int
     {
         $cards = $this->dueQuery()->limit(max(1, $count))->get();
+        $learning = $this->mode() === 'learning';
         foreach ($cards as $card) {
-            $this->sendFront($ctx, $card);
+            $learning ? $this->sendLearning($ctx, $card) : $this->sendFront($ctx, $card);
         }
 
         return $cards->count();
@@ -112,12 +144,11 @@ class StudyTelegramModule implements TelegramModule
 
     private function sendFront(TelegramContext $ctx, Card $card): void
     {
-        $tpl = $this->templateFor($card);
+        $r = (new CardRenderer)->render($card, $this->templateFor($card), 'telegram');
         $buttons = [[['text' => '👁 Göstər', 'callback_data' => "st:show:{$card->uid}"]]];
-        $text = $this->renderSide($card, $tpl, front: true);
-        $img = $this->sideImage($card, $tpl, front: true);
+        $text = $this->clean($r['front']);
 
-        if ($img && ($bytes = $this->imageBytes($img))) {
+        if ($r['front_image'] && ($bytes = $this->imageBytes($r['front_image']))) {
             $ctx->photo($bytes, 'front.jpg', $text ?: null, $buttons);
         } else {
             $ctx->say($text !== '' ? $text : '—', $buttons);
@@ -147,11 +178,10 @@ class StudyTelegramModule implements TelegramModule
                 ['text' => "😎 Asan · {$p['easy']}g", 'callback_data' => "st:rate:{$uid}:easy"],
             ],
         ];
-        $tpl = $this->templateFor($card);
-        $text = $this->renderSide($card, $tpl, front: false);
-        $img = $this->sideImage($card, $tpl, front: false);
+        $r = (new CardRenderer)->render($card, $this->templateFor($card), 'telegram');
+        $text = $this->clean($r['back']);
 
-        if ($img && ($bytes = $this->imageBytes($img))) {
+        if ($r['back_image'] && ($bytes = $this->imageBytes($r['back_image']))) {
             $ctx->photo($bytes, 'back.jpg', $text ?: null, $buttons);
         } else {
             $ctx->say($text !== '' ? $text : '—', $buttons);
@@ -188,92 +218,6 @@ class StudyTelegramModule implements TelegramModule
         $tpl = $deck && $deck->template_uid ? CardTemplate::find($deck->template_uid) : null;
 
         return $this->tplCache[$card->deck_uid] = $tpl;
-    }
-
-    /** Şablonda hər hansı sahə "Telegram ön"ə işarələnib? */
-    private function hasTgFront(CardTemplate $tpl): bool
-    {
-        foreach ($tpl->fields as $f) {
-            if (! empty($f['tgFront'])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Bir tərəfi mətn kimi render et.
-     * Şablonlu kart: ön = tgFront işarəli sahələr (yoxdursa side='front'); Göstər = qalanı (label: dəyər).
-     * Sadə kart: front/back sütunları.
-     */
-    private function renderSide(Card $card, ?CardTemplate $tpl, bool $front): string
-    {
-        if ($card->fields && $tpl) {
-            $useTg = $this->hasTgFront($tpl);
-            $lines = [];
-            foreach ($tpl->fields as $f) {
-                $type = $f['type'] ?? 'text';
-                $onFront = $useTg ? ! empty($f['tgFront']) : (($f['side'] ?? '') === 'front');
-                if ($front !== $onFront) {
-                    continue;
-                }
-                if ($type === 'heading') {
-                    if (! $front) {
-                        $lines[] = '<b>'.$this->clean($f['label'] ?? '').'</b>';
-                    }
-
-                    continue;
-                }
-                if ($type === 'image') {
-                    continue;
-                }
-                $val = $card->fields[$f['key'] ?? ''] ?? null;
-                if ($val === null || trim((string) $val) === '') {
-                    continue;
-                }
-                $text = ($type === 'rich') ? $this->stripHtml((string) $val) : (string) $val;
-                $lines[] = $front
-                    ? $this->clean($text)
-                    : '<b>'.$this->clean($f['label'] ?? '').':</b> '.$this->clean($text);
-            }
-
-            return implode($front ? ' · ' : "\n", $lines);
-        }
-
-        return $this->clean($front ? $card->front : $card->back);
-    }
-
-    /** Bir tərəfin şəkli (stored_file uid): sütun, yoxsa şablon image sahəsi. */
-    private function sideImage(Card $card, ?CardTemplate $tpl, bool $front): ?string
-    {
-        $col = $front ? $card->front_image : $card->back_image;
-        if ($col) {
-            return $col;
-        }
-        if ($card->fields && $tpl) {
-            $useTg = $this->hasTgFront($tpl);
-            foreach ($tpl->fields as $f) {
-                if (($f['type'] ?? '') !== 'image') {
-                    continue;
-                }
-                $onFront = $useTg ? ! empty($f['tgFront']) : (($f['side'] ?? '') === 'front');
-                if ($front !== $onFront) {
-                    continue;
-                }
-                $val = $card->fields[$f['key'] ?? ''] ?? null;
-                if ($val) {
-                    return (string) $val;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function stripHtml(string $s): string
-    {
-        return trim(preg_replace('/\s+/', ' ', strip_tags($s)) ?? '');
     }
 
     private function imageBytes(string $uid): ?string

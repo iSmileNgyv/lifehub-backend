@@ -182,6 +182,7 @@ Route::prefix('v1')->group(function () {
         // Öyrənmə (flashcards + SM-2)
         // Kart şablonları (formullar) — deck səviyyəsində seçilir
         Route::get('study/templates', [CardTemplateController::class, 'index'])->middleware('access:STUDY_VIEW');
+        Route::get('study/templates/{template}/sample', [CardTemplateController::class, 'sample'])->middleware('access:STUDY_VIEW');
         Route::post('study/templates', [CardTemplateController::class, 'store'])->middleware('access:STUDY_CREATE');
         Route::patch('study/templates/{template}', [CardTemplateController::class, 'update'])->middleware('access:STUDY_UPDATE');
         Route::delete('study/templates/{template}', [CardTemplateController::class, 'destroy'])->middleware('access:STUDY_DELETE');
@@ -199,6 +200,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('study/decks/{deck}/cards/{card}', [CardController::class, 'destroy'])->middleware('access:STUDY_DELETE');
         Route::get('study/decks/{deck}/queue', [StudyController::class, 'queue'])->middleware('access:STUDY_VIEW');
         Route::post('study/decks/{deck}/cards/{card}/answer', [StudyController::class, 'answer'])->middleware('access:STUDY_UPDATE');
+        // Öyrənmə parametrləri (bot + extension ortaq)
+        Route::get('study/settings', [StudyController::class, 'settings'])->middleware('access:STUDY_VIEW');
+        Route::put('study/settings', [StudyController::class, 'saveSettings'])->middleware('access:STUDY_VIEW');
 
         // Kassalar (cash desk)
         Route::get('cash-desks', [CashDeskController::class, 'index'])->middleware('access:CASHDESK_VIEW');

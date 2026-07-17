@@ -18,6 +18,7 @@ return [
     'transfer_needs_target' => 'A target account is required for a transfer.',
     'transfer_same_desk' => 'Transfer cannot go to the same account.',
     'posted' => 'Posted.',
+    'no_sample_card' => 'No card with this template — create one first.',
     'reversed' => 'Reversed — restored as draft.',
     'no_stock_access' => 'You have no access to this operation in this warehouse.',
     'super_admin_no_stock' => 'Stock locks do not apply to super admin.',

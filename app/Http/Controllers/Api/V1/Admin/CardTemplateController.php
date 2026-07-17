@@ -3,13 +3,30 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Card;
 use App\Models\CardTemplate;
+use App\Models\Deck;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class CardTemplateController extends Controller
 {
+    /** GET /api/v1/study/templates/{template}/sample — önizləmə üçün nümunə kart (bu şablonlu). */
+    public function sample(Request $request, CardTemplate $template): JsonResponse
+    {
+        $this->owner($request, $template);
+        $deckUids = Deck::where('template_uid', $template->uid)->pluck('uid');
+        $card = Card::whereIn('deck_uid', $deckUids)->whereNotNull('fields')->first()
+            ?? Card::whereIn('deck_uid', $deckUids)->first();
+
+        if (! $card) {
+            return response()->json(['message' => __('messages.no_sample_card')], 404);
+        }
+
+        return response()->json(['fields' => $card->fields, 'front' => $card->front, 'back' => $card->back]);
+    }
+
     /** GET /api/v1/study/templates */
     public function index(Request $request): JsonResponse
     {
@@ -28,6 +45,7 @@ class CardTemplateController extends Controller
             'description' => $data['description'] ?? null,
             'ai_instruction' => $data['ai_instruction'] ?? null,
             'fields' => $data['fields'] ?? [],
+            'display' => $data['display'] ?? null,
         ]);
 
         return response()->json($this->payload($template), 201);
@@ -43,6 +61,7 @@ class CardTemplateController extends Controller
             'description' => $data['description'] ?? null,
             'ai_instruction' => $data['ai_instruction'] ?? null,
             'fields' => $data['fields'] ?? [],
+            'display' => $data['display'] ?? null,
         ]);
 
         return response()->json($this->payload($template));
@@ -83,6 +102,8 @@ class CardTemplateController extends Controller
             'fields.*.level' => ['nullable', Rule::in(['h1', 'h2', 'h3', 'h4'])],
             'fields.*.color' => ['nullable', 'string', 'max:32'],
             'fields.*.align' => ['nullable', Rule::in(['left', 'center', 'right'])],
+            // Kanal görünüşü: {telegram:{front:[[key]],back:[[key]]}, extension:{...}} — sətirlər (yan-yana)
+            'display' => ['nullable', 'array'],
         ]);
     }
 
@@ -102,6 +123,7 @@ class CardTemplateController extends Controller
             'description' => $t->description,
             'ai_instruction' => $t->ai_instruction,
             'fields' => $t->fields ?? [],
+            'display' => $t->display,
         ];
     }
 }

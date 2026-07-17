@@ -18,7 +18,7 @@ class TelegramSetting extends Model
     protected $fillable = [
         'owner_uid', 'study_enabled', 'study_deck_uid', 'interval_min',
         'active_from', 'active_to', 'cards_per_push', 'last_pushed_at',
-        'mode', 'ext_enabled', 'ext_rotate_sec', 'ext_notify_min', 'ext_notify',
+        'mode', 'ext_mode', 'ext_enabled', 'ext_rotate_sec', 'ext_notify_min', 'ext_notify',
     ];
 
     protected function casts(): array

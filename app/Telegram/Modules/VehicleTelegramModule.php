@@ -17,6 +17,33 @@ use Illuminate\Support\Facades\Auth;
  */
 class VehicleTelegramModule implements TelegramModule
 {
+    private const MI_TO_KM = 1.609344;
+
+    /** İstifadəçinin daxil etdiyi vahid dəyəri → km (kanonik). */
+    private function toKm(float $v, ?string $unit): float
+    {
+        return $unit === 'mi' ? $v * self::MI_TO_KM : $v;
+    }
+
+    /** km → istifadəçi vahidi. */
+    private function toUnit(float $km, ?string $unit): float
+    {
+        return $unit === 'mi' ? $km / self::MI_TO_KM : $km;
+    }
+
+    private function unitLabel(?string $unit): string
+    {
+        return $unit === 'mi' ? 'mil' : 'km';
+    }
+
+    /** Probeqi hər iki vahiddə göstər (mi maşınında km də, əks halda təkcə km). */
+    private function bothUnits(float $km, ?string $unit): string
+    {
+        return $unit === 'mi'
+            ? round($this->toUnit($km, $unit)).' mil · '.round($km).' km'
+            : round($km).' km';
+    }
+
     public function key(): string
     {
         return 'car';
@@ -78,7 +105,8 @@ class VehicleTelegramModule implements TelegramModule
             if ($n <= 0) { $ctx->say('Neçə litr? (məs. 38.5)'); return; }
             $data['liters'] = $n;
             TelegramState::set($ctx->chatId, 'car', 'fuel_odo', $data);
-            $ctx->say('Probeq (km)?');
+            $ul = $this->unitLabel(Vehicle::find($data['vehicle'])?->unit);
+            $ctx->say("Probeq ({$ul})?");
 
             return;
         }
@@ -155,24 +183,25 @@ class VehicleTelegramModule implements TelegramModule
         if (! $v) { $ctx->answer(); $this->showVehicles($ctx); return; }
         TelegramState::set($ctx->chatId, 'car', 'km', ['vehicle' => $v->uid]);
         $ctx->answer();
-        $ctx->say('📍 Cari probeq (km)?');
+        $ctx->say('📍 Cari probeq ('.$this->unitLabel($v->unit).')?');
     }
 
-    private function saveReading(TelegramContext $ctx, string $vehicleUid, float $km): void
+    private function saveReading(TelegramContext $ctx, string $vehicleUid, float $input): void
     {
         $v = Vehicle::find($vehicleUid);
         if (! $v) { $ctx->say('Maşın tapılmadı'); return; }
+        $km = round($this->toKm($input, $v->unit), 2); // giriş vahiddə → km saxla
         $date = now()->toDateString();
-        $km = round($km, 2);
+        $ul = $this->unitLabel($v->unit);
 
         $prev = VehicleReading::where('vehicle_uid', $v->uid)->where('reading_date', '<', $date)->orderByDesc('reading_date')->first();
-        if ($prev && $km < (float) $prev->km) { $ctx->say("⚠️ Probeq əvvəlkindən ({$prev->km}) kiçik ola bilməz."); return; }
+        if ($prev && $km < (float) $prev->km) { $ctx->say('⚠️ Probeq əvvəlkindən ('.round($this->toUnit((float) $prev->km, $v->unit))." {$ul}) kiçik ola bilməz."); return; }
         $next = VehicleReading::where('vehicle_uid', $v->uid)->where('reading_date', '>', $date)->orderBy('reading_date')->first();
-        if ($next && $km > (float) $next->km) { $ctx->say("⚠️ Probeq sonrakından ({$next->km}) böyük ola bilməz."); return; }
+        if ($next && $km > (float) $next->km) { $ctx->say('⚠️ Probeq sonrakından ('.round($this->toUnit((float) $next->km, $v->unit))." {$ul}) böyük ola bilməz."); return; }
 
         VehicleReading::updateOrCreate(['vehicle_uid' => $v->uid, 'reading_date' => $date], ['km' => $km]);
         TelegramState::set($ctx->chatId, 'car', 'menu', ['vehicle' => $v->uid]);
-        $ctx->say("✅ Probeq yazıldı: <b>{$km} km</b> ({$date})");
+        $ctx->say('✅ Probeq yazıldı: <b>'.round($input)." {$ul}</b> ({$date})");
         $this->showMenu($ctx, $v);
     }
 
@@ -190,9 +219,10 @@ class VehicleTelegramModule implements TelegramModule
     {
         $v = Vehicle::find($data['vehicle']);
         if (! $v) { $ctx->say('Maşın tapılmadı'); return; }
+        $ul = $this->unitLabel($v->unit);
         $v->fuel()->create([
             'date' => now()->toDateString(),
-            'odometer_km' => round((float) $data['odo'], 2),
+            'odometer_km' => round($this->toKm((float) $data['odo'], $v->unit), 2), // giriş vahiddə → km
             'liters' => round((float) $data['liters'], 2),
             'amount' => $amount > 0 ? round($amount, 2) : null,
             'note' => null,
@@ -207,7 +237,7 @@ class VehicleTelegramModule implements TelegramModule
             }
         }
         TelegramState::set($ctx->chatId, 'car', 'menu', ['vehicle' => $v->uid]);
-        $ctx->say("✅ Yanacaq yazıldı: <b>{$data['liters']} L</b> · {$data['odo']} km".($amount > 0 ? " · {$amount} ₼" : '').$extra);
+        $ctx->say("✅ Yanacaq yazıldı: <b>{$data['liters']} L</b> · {$data['odo']} {$ul}".($amount > 0 ? " · {$amount} ₼" : '').$extra);
         $this->showMenu($ctx, $v);
     }
 
@@ -220,13 +250,17 @@ class VehicleTelegramModule implements TelegramModule
         $pace = PaceEstimator::estimate($v->readings, $v->avg_km_per_day ? (float) $v->avg_km_per_day : null);
         $projected = PaceEstimator::projectedKm($pace['current_km'], $pace['as_of'], $pace['pace']);
 
+        $u = $v->unit;
         $msg = "📊 <b>{$v->name}</b>\n";
-        $msg .= 'Cari probeq: '.($pace['current_km'] !== null ? '<b>'.round($pace['current_km']).' km</b> ('.$pace['as_of'].')' : '—').PHP_EOL;
+        $msg .= 'Cari probeq: '.($pace['current_km'] !== null ? '<b>'.$this->bothUnits((float) $pace['current_km'], $u).'</b> ('.$pace['as_of'].')' : '—').PHP_EOL;
         if ($projected !== null) {
-            $msg .= 'İndi təxmini: <b>'.round($projected).' km</b>'.PHP_EOL;
+            $msg .= 'İndi təxmini: <b>'.$this->bothUnits((float) $projected, $u).'</b>'.PHP_EOL;
         }
         if ($pace['pace'] !== null) {
-            $msg .= 'Günlük tempo: '.round((float) $pace['pace'], 1).' km/gün'.PHP_EOL;
+            $paceStr = $u === 'mi'
+                ? round($this->toUnit((float) $pace['pace'], $u), 1).' mil/gün · '.round((float) $pace['pace'], 1).' km/gün'
+                : round((float) $pace['pace'], 1).' km/gün';
+            $msg .= 'Günlük tempo: '.$paceStr.PHP_EOL;
         }
         $fuels = VehicleFuel::where('vehicle_uid', $v->uid)->orderByDesc('odometer_km')->limit(2)->get();
         if ($fuels->count() >= 2) {

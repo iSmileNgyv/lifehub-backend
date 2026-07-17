@@ -79,6 +79,7 @@ class StudyController extends Controller
     {
         $data = $request->validate([
             'mode' => ['required', 'in:learning,flashcard'],
+            'ext_mode' => ['required', 'in:learning,flashcard'],
             'study_deck_uid' => ['nullable', 'string', Rule::exists('decks', 'uid')],
             'active_from' => ['required', 'date_format:H:i'],
             'active_to' => ['required', 'date_format:H:i'],
@@ -105,6 +106,7 @@ class StudyController extends Controller
     {
         return [
             'mode' => $s->mode ?? 'flashcard',
+            'ext_mode' => $s->ext_mode ?? ($s->mode ?? 'flashcard'),
             'study_deck_uid' => $s->study_deck_uid ?? null,
             'active_from' => substr((string) ($s->active_from ?? '09:00'), 0, 5),
             'active_to' => substr((string) ($s->active_to ?? '22:00'), 0, 5),

@@ -142,6 +142,12 @@ class TradingJournalController extends Controller
         return response()->json(['message' => __('messages.saved'), ...$result]);
     }
 
+    /** GET /api/v1/trading/journals/{journal}/check — post ETMƏDƏN cari statistika (mənfəət daxil). */
+    public function check(TradingJournal $journal, TradingPostingService $service): JsonResponse
+    {
+        return response()->json($service->check($journal));
+    }
+
     /**
      * @return array<string, mixed>
      */

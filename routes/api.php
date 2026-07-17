@@ -87,6 +87,7 @@ Route::prefix('v1')->group(function () {
         Route::post('trading/journals', [TradingJournalController::class, 'store'])->middleware('access:TRADING_CREATE');
         Route::patch('trading/journals/{journal}', [TradingJournalController::class, 'update'])->middleware('access:TRADING_UPDATE');
         Route::delete('trading/journals/{journal}', [TradingJournalController::class, 'destroy'])->middleware('access:TRADING_DELETE');
+        Route::get('trading/journals/{journal}/check', [TradingJournalController::class, 'check'])->middleware('access:TRADING_VIEW');
         Route::post('trading/journals/{journal}/post', [TradingJournalController::class, 'post'])->middleware('access:TRADING_POST');
         // Jurnal sətirləri (inline)
         Route::get('trading/journals/{journal}/entries', [TradingJournalEntryController::class, 'index'])->middleware('access:TRADING_VIEW');

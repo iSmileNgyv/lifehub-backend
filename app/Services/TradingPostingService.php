@@ -19,6 +19,73 @@ use RuntimeException;
 class TradingPostingService
 {
     /**
+     * Dry-run "Yoxla" — post ETMƏDƏN jurnalın cari statistikasını hesablayır (mənfəət daxil).
+     * FIFO cari açıq təbəqələr + bu jurnalın alışları üzərində YADDAŞDA simulyasiya olunur (DB dəyişmir).
+     *
+     * @return array<string, float>
+     */
+    public function check(TradingJournal $journal): array
+    {
+        $ordered = $journal->entries()->get()
+            ->sortBy(fn ($e) => $e->entry_type->value === 'buy' ? 0 : 1)->values();
+
+        // Cari açıq FIFO təbəqələri (yaddaşa) — DB toxunulmur
+        $layers = TradingLedgerEntry::where('positive', true)->where('open', true)->where('remain_qty', '>', 0)
+            ->orderBy('posting_date')->orderBy('uid')->get()
+            ->map(fn ($l) => ['remain' => (float) $l->remain_qty, 'unit' => (float) $l->unit_amount_lcy])
+            ->all();
+
+        $buyManat = 0.0;
+        $sellManat = 0.0;
+        $buyUsd = 0.0;
+        $sellUsd = 0.0;
+        $cogs = 0.0;
+        $shortage = 0.0;
+
+        foreach ($ordered as $e) {
+            $usd = (float) $e->usd_qty;
+            $manat = (float) $e->manat_amount;
+
+            if ($e->entry_type->value === 'buy') {
+                $layers[] = ['remain' => $usd, 'unit' => $usd > 0 ? $manat / $usd : 0];
+                $buyManat += $manat;
+                $buyUsd += $usd;
+            } else {
+                $remaining = $usd;
+                foreach ($layers as &$layer) {
+                    if ($remaining <= 0) {
+                        break;
+                    }
+                    if ($layer['remain'] <= 0) {
+                        continue;
+                    }
+                    $take = min($layer['remain'], $remaining);
+                    $cogs += $take * $layer['unit'];
+                    $layer['remain'] -= $take;
+                    $remaining -= $take;
+                }
+                unset($layer);
+                if ($remaining > 0) {
+                    $shortage += $remaining;
+                }
+                $sellManat += $manat;
+                $sellUsd += $usd;
+            }
+        }
+
+        return [
+            'buy_manat' => round($buyManat, 2),
+            'sell_manat' => round($sellManat, 2),
+            'buy_usd' => round($buyUsd, 4),
+            'sell_usd' => round($sellUsd, 4),
+            'net_cash' => round($sellManat - $buyManat, 2),
+            'cogs' => round($cogs, 2),
+            'profit' => round($sellManat - $cogs, 2),
+            'shortage_usd' => round($shortage, 4), // >0 → USD çatmır, post edilə bilməz
+        ];
+    }
+
+    /**
      * @return array<string, float>
      */
     public function post(TradingJournal $journal): array

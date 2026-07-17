@@ -19,6 +19,11 @@ class StudyTelegramModule implements TelegramModule
     /** @var array<string, CardTemplate|null> deck_uid → template */
     private array $tplCache = [];
 
+    public function key(): string
+    {
+        return 'study';
+    }
+
     public function commands(): array
     {
         return ['learn'];
@@ -27,6 +32,11 @@ class StudyTelegramModule implements TelegramModule
     public function ownsCallback(string $data): bool
     {
         return str_starts_with($data, 'st:');
+    }
+
+    public function onText(TelegramContext $ctx, string $text): void
+    {
+        // Study mətn addımı işlətmir (callback-əsaslıdır).
     }
 
     public function onCommand(TelegramContext $ctx, string $command, string $args): void

@@ -5,6 +5,7 @@ namespace App\Telegram;
 use App\Models\User;
 use App\Telegram\Contracts\TelegramModule;
 use App\Telegram\Modules\StudyTelegramModule;
+use App\Telegram\Modules\TradingTelegramModule;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -20,6 +21,16 @@ class TelegramRouter
     {
         return [
             app(StudyTelegramModule::class),
+            app(TradingTelegramModule::class),
+        ];
+    }
+
+    /** @return array<int, array<int, array<string, string>>> */
+    private function mainMenu(): array
+    {
+        return [
+            [['text' => '📚 Öyrən', 'callback_data' => 'st:learn']],
+            [['text' => '💱 Ticarət', 'callback_data' => 'tr:start']],
         ];
     }
 
@@ -76,9 +87,26 @@ class TelegramRouter
                         return;
                     }
                 }
-                $ctx->say('🤖 Komanda tanınmadı. /learn yaz.');
+                $ctx->say('🤖 Komanda tanınmadı.', $this->mainMenu());
             });
+
+            return;
         }
+
+        // Adi mətn — aktiv söhbət state-i varsa sahib modula ötür, yoxsa menyu
+        $state = TelegramState::get($chatId);
+        $this->asUser($user, function () use ($ctx, $text, $state) {
+            if ($state) {
+                foreach ($this->modules() as $m) {
+                    if ($m->key() === $state['module']) {
+                        $m->onText($ctx, $text);
+
+                        return;
+                    }
+                }
+            }
+            $ctx->say('Menyu:', $this->mainMenu());
+        });
     }
 
     /** @param array<string, mixed> $cb */
@@ -132,13 +160,13 @@ class TelegramRouter
                 'telegram_link_code' => null,
                 'telegram_link_expires_at' => null,
             ])->save();
-            $ctx->say("✅ Bağlandı, <b>{$user->username}</b>!", [[['text' => '📚 Öyrən', 'callback_data' => 'st:learn']]]);
+            $ctx->say("✅ Bağlandı, <b>{$user->username}</b>!", $this->mainMenu());
 
             return;
         }
 
         if ($ctx->user) {
-            $ctx->say('Salam! 👋', [[['text' => '📚 Öyrən', 'callback_data' => 'st:learn']]]);
+            $ctx->say('Salam! 👋', $this->mainMenu());
         } else {
             $this->promptLink($ctx);
         }

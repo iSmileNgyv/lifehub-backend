@@ -10,6 +10,9 @@ use App\Telegram\TelegramContext;
  */
 interface TelegramModule
 {
+    /** Modul açarı (söhbət state-ində sahiblik üçün): məs. 'study', 'trade'. */
+    public function key(): string;
+
     /** İşlətdiyi komandalar (slash-sız): məs. ['learn']. */
     public function commands(): array;
 
@@ -21,4 +24,7 @@ interface TelegramModule
 
     /** Inline düymə (callback) işlə. */
     public function onCallback(TelegramContext $ctx, string $data): void;
+
+    /** Mətn mesajı (yalnız bu modul söhbət state-ində olanda çağrılır). */
+    public function onText(TelegramContext $ctx, string $text): void;
 }

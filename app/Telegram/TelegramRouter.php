@@ -25,13 +25,33 @@ class TelegramRouter
         ];
     }
 
-    /** @return array<int, array<int, array<string, string>>> */
-    private function mainMenu(): array
+    /**
+     * İstifadəçinin icazəsi olan modulların menyu düymələri.
+     *
+     * @return array<int, array<int, array<string, string>>>
+     */
+    private function mainMenu(User $user): array
     {
-        return [
-            [['text' => '📚 Öyrən', 'callback_data' => 'st:learn']],
-            [['text' => '💱 Ticarət', 'callback_data' => 'tr:start']],
-        ];
+        $rows = [];
+        foreach ($this->modules() as $m) {
+            $b = $m->menuButton();
+            if ($b && $user->hasOperation($b['op'])) {
+                $rows[] = [['text' => $b['text'], 'callback_data' => $b['callback_data']]];
+            }
+        }
+
+        return $rows;
+    }
+
+    /** Menyu mesajı göndər (icazəyə görə). */
+    private function menuMsg(TelegramContext $ctx, User $user): void
+    {
+        $menu = $this->mainMenu($user);
+        if ($menu) {
+            $ctx->say('📋 Menyu — nə etmək istəyirsən?', $menu);
+        } else {
+            $ctx->say('Hələ sənə açıq modul yoxdur.');
+        }
     }
 
     /** @param array<string, mixed> $update */
@@ -79,7 +99,12 @@ class TelegramRouter
             $parts = explode(' ', ltrim($text, '/'), 2);
             $cmd = strtolower($parts[0]);
             $args = trim($parts[1] ?? '');
-            $this->asUser($user, function () use ($ctx, $cmd, $args) {
+            $this->asUser($user, function () use ($ctx, $cmd, $args, $user) {
+                if ($cmd === 'menu' || $cmd === 'help') {
+                    $this->menuMsg($ctx, $user);
+
+                    return;
+                }
                 foreach ($this->modules() as $m) {
                     if (in_array($cmd, $m->commands(), true)) {
                         $m->onCommand($ctx, $cmd, $args);
@@ -87,7 +112,7 @@ class TelegramRouter
                         return;
                     }
                 }
-                $ctx->say('🤖 Komanda tanınmadı.', $this->mainMenu());
+                $this->menuMsg($ctx, $user);
             });
 
             return;
@@ -95,7 +120,7 @@ class TelegramRouter
 
         // Adi mətn — aktiv söhbət state-i varsa sahib modula ötür, yoxsa menyu
         $state = TelegramState::get($chatId);
-        $this->asUser($user, function () use ($ctx, $text, $state) {
+        $this->asUser($user, function () use ($ctx, $text, $state, $user) {
             if ($state) {
                 foreach ($this->modules() as $m) {
                     if ($m->key() === $state['module']) {
@@ -105,7 +130,7 @@ class TelegramRouter
                     }
                 }
             }
-            $ctx->say('Menyu:', $this->mainMenu());
+            $this->menuMsg($ctx, $user);
         });
     }
 
@@ -160,13 +185,13 @@ class TelegramRouter
                 'telegram_link_code' => null,
                 'telegram_link_expires_at' => null,
             ])->save();
-            $ctx->say("✅ Bağlandı, <b>{$user->username}</b>!", $this->mainMenu());
+            $ctx->say("✅ Bağlandı, <b>{$user->username}</b>!", $this->mainMenu($user));
 
             return;
         }
 
         if ($ctx->user) {
-            $ctx->say('Salam! 👋', $this->mainMenu());
+            $ctx->say('Salam! 👋', $this->mainMenu($ctx->user));
         } else {
             $this->promptLink($ctx);
         }

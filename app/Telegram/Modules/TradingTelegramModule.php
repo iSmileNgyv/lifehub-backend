@@ -24,6 +24,11 @@ class TradingTelegramModule implements TelegramModule
         return 'trade';
     }
 
+    public function menuButton(): ?array
+    {
+        return ['text' => '💱 Ticarət', 'callback_data' => 'tr:start', 'op' => 'TRADING_VIEW'];
+    }
+
     public function commands(): array
     {
         return ['trade', 'balance'];

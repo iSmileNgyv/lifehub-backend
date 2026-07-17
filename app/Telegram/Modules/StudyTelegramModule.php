@@ -24,6 +24,11 @@ class StudyTelegramModule implements TelegramModule
         return 'study';
     }
 
+    public function menuButton(): ?array
+    {
+        return ['text' => '📚 Öyrən', 'callback_data' => 'st:learn', 'op' => 'STUDY_VIEW'];
+    }
+
     public function commands(): array
     {
         return ['learn'];

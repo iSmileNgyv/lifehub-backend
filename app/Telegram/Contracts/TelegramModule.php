@@ -13,6 +13,13 @@ interface TelegramModule
     /** Modul açarı (söhbət state-ində sahiblik üçün): məs. 'study', 'trade'. */
     public function key(): string;
 
+    /**
+     * Əsas menyu düyməsi (icazəyə görə süzülür) və ya null.
+     *
+     * @return array{text:string, callback_data:string, op:string}|null
+     */
+    public function menuButton(): ?array;
+
     /** İşlətdiyi komandalar (slash-sız): məs. ['learn']. */
     public function commands(): array;
 

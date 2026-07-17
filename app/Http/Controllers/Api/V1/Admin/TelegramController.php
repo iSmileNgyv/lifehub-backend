@@ -55,7 +55,7 @@ class TelegramController extends Controller
     {
         $data = $request->validate([
             'study_enabled' => ['required', 'boolean'],
-            'study_deck_uid' => ['nullable', 'string', Rule::exists('app.decks', 'uid')],
+            'study_deck_uid' => ['nullable', 'string', Rule::exists('decks', 'uid')],
             'interval_min' => ['required', 'integer', 'min:5', 'max:1440'],
             'active_from' => ['required', 'date_format:H:i'],
             'active_to' => ['required', 'date_format:H:i'],

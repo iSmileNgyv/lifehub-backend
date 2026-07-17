@@ -52,7 +52,7 @@ class StudyTelegramModule implements TelegramModule
     }
 
     /** Due kartlar (owner-scoped, settings deck-inə görə) — state='new' sonra, due-ya görə. */
-    private function dueQuery()
+    private function dueQuery(?string $excludeUid = null)
     {
         $deckUid = optional(TelegramSetting::find(Auth::user()->uid))->study_deck_uid;
 
@@ -63,14 +63,19 @@ class StudyTelegramModule implements TelegramModule
         if ($deckUid) {
             $q->where('deck_uid', $deckUid);
         }
+        // Yenicə qiymətləndirilən kartı istisna et — "again" (due=bu gün) dərhal geri gəlməsin,
+        // digərlərindən sonra qayıtsın (appdakı sessiya re-queue-nun analoqu).
+        if ($excludeUid) {
+            $q->where('uid', '!=', $excludeUid);
+        }
 
         return $q;
     }
 
     /** Növbəti due kartı göndər və ya "bitdi" (on-demand /learn üçün). */
-    private function sendNext(TelegramContext $ctx): void
+    private function sendNext(TelegramContext $ctx, ?string $excludeUid = null): void
     {
-        $card = $this->dueQuery()->first();
+        $card = $this->dueQuery($excludeUid)->first();
         if (! $card) {
             $ctx->say('🎉 Bugünlük bitdi — due kart yoxdur.');
 
@@ -153,9 +158,9 @@ class StudyTelegramModule implements TelegramModule
             return;
         }
         $card->update(Srs::apply($card, $rating));
-        $ctx->answer("✓ {$card->interval} gün sonra");
+        $ctx->answer($rating === 'again' ? '🔁 Yenidən sıraya' : "✓ {$card->interval} gün sonra");
         $ctx->clearButtons();
-        $this->sendNext($ctx);
+        $this->sendNext($ctx, $uid); // eyni kartı dərhal təkrar göndərmə
     }
 
     /** Kartın deck şablonu (varsa). Owner-scoped. */

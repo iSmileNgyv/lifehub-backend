@@ -27,13 +27,38 @@ class UserController extends Controller
         }
 
         $users = $query->paginate(20);
+        $withTg = (bool) $request->user()?->hasOperation('USER_TELEGRAM');
 
         return response()->json([
-            'data' => collect($users->items())->map(fn (User $u) => $this->payload($u))->all(),
+            'data' => collect($users->items())->map(fn (User $u) => $this->payload($u, $withTg))->all(),
             'current_page' => $users->currentPage(),
             'last_page' => $users->lastPage(),
             'total' => $users->total(),
         ]);
+    }
+
+    /** POST /api/v1/users/{user}/telegram-code — admin istifadəçi üçün bağlama kodu yaradır (access:USER_TELEGRAM). */
+    public function telegramCode(User $user): JsonResponse
+    {
+        $code = strtoupper(\Illuminate\Support\Str::random(8));
+        $user->forceFill([
+            'telegram_link_code' => $code,
+            'telegram_link_expires_at' => now()->addMinutes(30),
+        ])->save();
+
+        return response()->json(['code' => $code, 'bot_username' => config('services.telegram.username'), 'expires_min' => 30]);
+    }
+
+    /** POST /api/v1/users/{user}/telegram-unlink — istifadəçinin bot bağlantısını ayır (access:USER_TELEGRAM). */
+    public function telegramUnlink(User $user): JsonResponse
+    {
+        $user->forceFill([
+            'telegram_chat_id' => null,
+            'telegram_link_code' => null,
+            'telegram_link_expires_at' => null,
+        ])->save();
+
+        return response()->json(['ok' => true]);
     }
 
     /** POST /api/v1/users — yeni istifadəçi (qeydiyyat) */
@@ -93,9 +118,9 @@ class UserController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function payload(User $user): array
+    private function payload(User $user, bool $withTelegram = false): array
     {
-        return [
+        $data = [
             'uid' => $user->uid,
             'name' => $user->name,
             'username' => $user->username,
@@ -104,5 +129,11 @@ class UserController extends Controller
             'created_at' => $user->created_at?->toIso8601String(),
             'roles' => $user->roles->map(fn ($r) => ['code' => $r->code, 'name' => $r->name])->values()->all(),
         ];
+        // Telegram bağlantı statusu yalnız icazə olanda (USER_TELEGRAM)
+        if ($withTelegram) {
+            $data['telegram_linked'] = ! empty($user->telegram_chat_id);
+        }
+
+        return $data;
     }
 }

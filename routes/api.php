@@ -211,6 +211,8 @@ Route::prefix('v1')->group(function () {
         Route::patch('users/{user}', [UserController::class, 'update'])->middleware('access:USER_UPDATE');
         Route::put('users/{user}/password', [UserController::class, 'setPassword'])->middleware('access:USER_UPDATE');
         Route::put('users/{user}/roles', [UserController::class, 'syncRoles'])->middleware('access:USER_ROLE_ASSIGN');
+        Route::post('users/{user}/telegram-code', [UserController::class, 'telegramCode'])->middleware('access:USER_TELEGRAM');
+        Route::post('users/{user}/telegram-unlink', [UserController::class, 'telegramUnlink'])->middleware('access:USER_TELEGRAM');
 
         // Operation kataloqu (rol UI palitrası)
         Route::get('operations', [OperationController::class, 'index'])->middleware('access:ROLE_VIEW');

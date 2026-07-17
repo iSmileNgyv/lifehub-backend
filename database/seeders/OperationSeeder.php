@@ -25,7 +25,7 @@ class OperationSeeder extends Seeder
         'vehicle' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
         'study' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE'],
         'role' => ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'ACCESS_MANAGE'],
-        'user' => ['VIEW', 'CREATE', 'UPDATE', 'ROLE_ASSIGN'],
+        'user' => ['VIEW', 'CREATE', 'UPDATE', 'ROLE_ASSIGN', 'TELEGRAM'],
         'language' => ['VIEW', 'MANAGE'],
         'settings' => ['VIEW', 'MANAGE'],
     ];
@@ -60,6 +60,7 @@ class OperationSeeder extends Seeder
         'POST' => ['az' => 'post etmə', 'en' => 'post', 'ru' => 'проведение'],
         'FORMULA_MANAGE' => ['az' => 'formula idarəsi', 'en' => 'formula management', 'ru' => 'управление формулами'],
         'LEDGER_VIEW' => ['az' => 'kitabça baxışı', 'en' => 'ledger view', 'ru' => 'просмотр книги'],
+        'TELEGRAM' => ['az' => 'Telegram bağlama', 'en' => 'Telegram linking', 'ru' => 'привязка Telegram'],
     ];
 
     /** Anbar seçən operationlar — LifeHub-da yoxdur (generic baza). */

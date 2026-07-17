@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Telegram\Contracts\TelegramModule;
 use App\Telegram\Modules\StudyTelegramModule;
 use App\Telegram\Modules\TradingTelegramModule;
+use App\Telegram\Modules\VehicleTelegramModule;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -22,6 +23,7 @@ class TelegramRouter
         return [
             app(StudyTelegramModule::class),
             app(TradingTelegramModule::class),
+            app(VehicleTelegramModule::class),
         ];
     }
 

@@ -76,8 +76,10 @@ class DeckShareService
     public function pullUpdates(Deck $copy): int
     {
         abort_if($copy->source_deck_uid === null, 422, 'Bu koloda idxal olunmayıb.');
-        // Mənbə paylaşımı hələ aktivdirmi (sahib dayandıra bilər).
-        $this->activeShare($copy->source_share_code);
+        // Mənbə koloda üçün hələ aktiv paylaşım varmı (sahib dayandıra bilər).
+        // Konkret idxal koduna bağlamırıq — sahib təzədən paylaşsa yeni kod yaranır.
+        $hasActive = DeckShare::where('deck_uid', $copy->source_deck_uid)->whereNull('revoked_at')->exists();
+        abort_unless($hasActive, 403, 'Bu kolodanın paylaşımı dayandırılıb.');
         $source = $this->sourceDeck($copy->source_deck_uid);
 
         $have = Card::withoutGlobalScope('owner')

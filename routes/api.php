@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\FinanceLedgerController;
 use App\Http\Controllers\Api\V1\Admin\FinanceReportController;
 use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\DeckController;
+use App\Http\Controllers\Api\V1\Admin\DeckShareController;
 use App\Http\Controllers\Api\V1\Admin\StudyController;
 use App\Http\Controllers\Api\V1\Admin\ItemController;
 use App\Http\Controllers\Api\V1\Admin\ItemMeasurementController;
@@ -200,6 +201,12 @@ Route::prefix('v1')->group(function () {
         Route::delete('study/decks/{deck}/cards/{card}', [CardController::class, 'destroy'])->middleware('access:STUDY_DELETE');
         Route::get('study/decks/{deck}/queue', [StudyController::class, 'queue'])->middleware('access:STUDY_VIEW');
         Route::post('study/decks/{deck}/cards/{card}/answer', [StudyController::class, 'answer'])->middleware('access:STUDY_UPDATE');
+        // Koloda paylaşımı (copy/fork) — kod yarat/dayandır, kod üzrə idxal, mənbədən yenilə
+        Route::get('study/decks/{deck}/share', [DeckShareController::class, 'show'])->middleware('access:STUDY_VIEW');
+        Route::post('study/decks/{deck}/share', [DeckShareController::class, 'store'])->middleware('access:STUDY_UPDATE');
+        Route::delete('study/decks/{deck}/share', [DeckShareController::class, 'destroy'])->middleware('access:STUDY_UPDATE');
+        Route::post('study/import', [DeckShareController::class, 'import'])->middleware('access:STUDY_CREATE');
+        Route::post('study/decks/{deck}/pull', [DeckShareController::class, 'pull'])->middleware('access:STUDY_UPDATE');
         // Öyrənmə parametrləri (bot + extension ortaq)
         Route::get('study/settings', [StudyController::class, 'settings'])->middleware('access:STUDY_VIEW');
         Route::put('study/settings', [StudyController::class, 'saveSettings'])->middleware('access:STUDY_VIEW');

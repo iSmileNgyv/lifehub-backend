@@ -20,7 +20,7 @@ class CardTemplate extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['uid', 'owner_uid', 'name', 'description', 'ai_instruction', 'fields', 'display'];
+    protected $fillable = ['uid', 'owner_uid', 'source_template_uid', 'name', 'description', 'ai_instruction', 'fields', 'display'];
 
     public function uniqueIds(): array
     {

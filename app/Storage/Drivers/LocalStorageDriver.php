@@ -25,6 +25,11 @@ class LocalStorageDriver implements StorageDriver
         $this->disk->put($path, $contents);
     }
 
+    public function get(string $path): string
+    {
+        return (string) $this->disk->get($path);
+    }
+
     public function url(string $path): string
     {
         return $this->disk->url($path);

@@ -12,6 +12,9 @@ interface StorageDriver
 
     public function put(string $path, string $contents): void;
 
+    /** Faylın məzmununu qaytarır (kopyalama üçün). */
+    public function get(string $path): string;
+
     public function url(string $path): string;
 
     public function delete(string $path): void;

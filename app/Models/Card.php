@@ -21,7 +21,7 @@ class Card extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'uid', 'deck_uid', 'front', 'back', 'front_image', 'back_image', 'fields',
+        'uid', 'deck_uid', 'source_card_uid', 'front', 'back', 'front_image', 'back_image', 'fields',
         'state', 'due', 'interval', 'ease', 'reps', 'lapses',
     ];
 

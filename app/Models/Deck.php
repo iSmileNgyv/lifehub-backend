@@ -21,7 +21,7 @@ class Deck extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['uid', 'owner_uid', 'name', 'description', 'template_uid'];
+    protected $fillable = ['uid', 'owner_uid', 'name', 'description', 'template_uid', 'source_deck_uid', 'source_share_code'];
 
     public function uniqueIds(): array
     {

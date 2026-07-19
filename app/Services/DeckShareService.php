@@ -114,13 +114,16 @@ class DeckShareService
             return 0; // paylaşım dayandırılıb → yeniləmə mümkün deyil
         }
 
-        $sourceTotal = Card::withoutGlobalScope('owner')->where('deck_uid', $copy->source_deck_uid)->count();
         $copied = Card::withoutGlobalScope('owner')
             ->where('deck_uid', $copy->uid)
             ->whereNotNull('source_card_uid')
-            ->count();
+            ->pluck('source_card_uid');
 
-        return max(0, $sourceTotal - $copied);
+        // Mənbədə olub kopyada hələ istinad edilməyən kartların sayı
+        return Card::withoutGlobalScope('owner')
+            ->where('deck_uid', $copy->source_deck_uid)
+            ->when($copied->isNotEmpty(), fn ($q) => $q->whereNotIn('uid', $copied))
+            ->count();
     }
 
     // ── daxili köməkçilər ─────────────────────────────────────────────

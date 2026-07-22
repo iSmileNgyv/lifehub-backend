@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CashDesk;
 use App\Models\CashLedgerEntry;
+use App\Models\FinanceBudget;
 use App\Models\FinanceLedgerEntry;
 use App\Models\FinanceLedgerLine;
 use Illuminate\Http\JsonResponse;
@@ -215,6 +216,56 @@ class FinanceReportController extends Controller
                 'descr' => $e->descr,
                 'doc_no' => $e->doc_no,
             ])->values(),
+        ]);
+    }
+
+    /** GET /api/v1/finance-reports/budget?from=&to= — büdcə vs faktiki (aylıq limit seçilmiş dövrə proporsional) */
+    public function budget(Request $request): JsonResponse
+    {
+        [$from, $to] = $this->range($request);
+        $f = \Illuminate\Support\Carbon::parse($from);
+        $t = \Illuminate\Support\Carbon::parse($to);
+        $days = $f->diffInDays($t) + 1;
+        $factor = $days / 30.4375; // aylıq limit → dövr (orta ay uzunluğu)
+
+        // Faktiki: xərc kateqoriya üzrə + ümumi xərc + ümumi gəlir
+        $exp = FinanceLedgerEntry::query()->whereBetween('posting_date', [$from, $to])->where('entry_type', 'expense')
+            ->selectRaw('category_code, SUM(amount_lcy) as total')->groupBy('category_code')->get();
+        $expByCat = [];
+        $expTotal = 0.0;
+        foreach ($exp as $r) {
+            $expByCat[$r->category_code ?? ''] = (float) $r->total;
+            $expTotal += (float) $r->total;
+        }
+        $incTotal = (float) FinanceLedgerEntry::query()->whereBetween('posting_date', [$from, $to])->where('entry_type', 'income')->sum('amount_lcy');
+
+        $overall = null;
+        $income = null;
+        $cats = [];
+        foreach (FinanceBudget::all() as $b) {
+            $monthly = (float) $b->amount_lcy;
+            $prorated = round($monthly * $factor, 2);
+            if ($b->kind === 'overall_expense') {
+                $overall = ['monthly' => $monthly, 'prorated' => $prorated, 'actual' => round($expTotal, 2)];
+            } elseif ($b->kind === 'income_target') {
+                $income = ['monthly' => $monthly, 'prorated' => $prorated, 'actual' => round($incTotal, 2)];
+            } else {
+                $cats[] = [
+                    'category_code' => $b->category_code,
+                    'monthly' => $monthly,
+                    'prorated' => $prorated,
+                    'actual' => round($expByCat[$b->category_code] ?? 0, 2),
+                ];
+            }
+        }
+        usort($cats, fn ($a, $b) => $b['actual'] <=> $a['actual']);
+
+        return response()->json([
+            'from' => $from, 'to' => $to,
+            'factor' => round($factor, 3),
+            'overall' => $overall,
+            'income' => $income,
+            'categories' => $cats,
         ]);
     }
 

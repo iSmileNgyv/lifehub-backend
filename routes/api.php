@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\FinanceCategoryController;
 use App\Http\Controllers\Api\V1\Admin\FinanceJournalController;
 use App\Http\Controllers\Api\V1\Admin\FinanceLedgerController;
+use App\Http\Controllers\Api\V1\Admin\FinanceBudgetController;
 use App\Http\Controllers\Api\V1\Admin\FinanceReportController;
 use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\DeckController;
@@ -139,6 +140,10 @@ Route::prefix('v1')->group(function () {
         Route::get('finance-reports/items', [FinanceReportController::class, 'items'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/cash', [FinanceReportController::class, 'cash'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/entries', [FinanceReportController::class, 'entries'])->middleware('access:FINANCE_VIEW');
+        Route::get('finance-reports/budget', [FinanceReportController::class, 'budget'])->middleware('access:FINANCE_VIEW');
+        // Büdcə/hədəf idarəetmə
+        Route::get('finance-budgets', [FinanceBudgetController::class, 'index'])->middleware('access:FINANCE_VIEW');
+        Route::post('finance-budgets', [FinanceBudgetController::class, 'upsert'])->middleware('access:FINANCE_UPDATE');
 
         // Sistem ayarları
         Route::get('settings', [SettingController::class, 'index'])->middleware('access:SETTINGS_VIEW');

@@ -138,6 +138,7 @@ Route::prefix('v1')->group(function () {
         Route::get('finance-reports/summary', [FinanceReportController::class, 'summary'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/items', [FinanceReportController::class, 'items'])->middleware('access:FINANCE_VIEW');
         Route::get('finance-reports/cash', [FinanceReportController::class, 'cash'])->middleware('access:FINANCE_VIEW');
+        Route::get('finance-reports/entries', [FinanceReportController::class, 'entries'])->middleware('access:FINANCE_VIEW');
 
         // Sistem ayarları
         Route::get('settings', [SettingController::class, 'index'])->middleware('access:SETTINGS_VIEW');
